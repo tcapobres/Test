@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NECTAR Payout Batch Issuer</title>
+    <script src="https://unpkg.com/@hiveio/dhive@latest/dist/dhive.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #f1f5f9; padding: 20px; }
+        .card { max-width: 900px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #334155; }
+        h2 { color: #f43f5e; text-align: center; margin-bottom: 20px; }
+        .upload-section { background: #0f172a; border: 2px dashed #475569; padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 20px; transition: 0.2s; position: relative; }
+        .upload-section.dragover { border-color: #f43f5e; background: #1e1b4b; }
+        .upload-section input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .upload-text { font-size: 0.95rem; color: #94a3b8; }
+        .upload-text b { color: #f43f5e; }
+        
+        .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: #0f172a; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #334155; }
+        .val { display: block; font-size: 1.2rem; font-weight: bold; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th { text-align: left; color: #64748b; font-size: 0.7rem; padding: 10px; border-bottom: 2px solid #334155; text-transform: uppercase; }
+        td { padding: 12px 10px; border-bottom: 1px solid #334155; font-size: 0.85rem; }
+        
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+        .memo-input { background: #0f172a; border: 1px solid #475569; color: white; padding: 10px; border-radius: 6px; width: 250px; outline: none; }
+        button { background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #059669; }
+        button:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+        
+        #status { text-align: center; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; font-weight: bold; }
+        .status-success { background: #065f46; color: #34d399; border: 1px solid #047857; }
+        .status-error { background: #991b1b; color: #f87171; border: 1px solid #b91c1c; }
+        .status-loading { background: #78350f; color: #fbbf24; border: 1px solid #92400e; }
+        
+        .badge { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; color: #94a3b8; margin-left: 5px; }
+        .badge-success { background: #065f46; color: #34d399; }
+        .badge-error { background: #781c1c; color: #f87171; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>NECTAR Payout Batch Issuer</h2>
+    
+    <div class="upload-section" id="dropZone">
+        <input type="file" id="csvFileInput" accept=".csv">
+        <div class="upload-text" id="uploadText">
+            Drag and drop your payout CSV here, or <b>browse files</b><br>
+            <span style="font-size: 0.75rem; color: #64748b;">Expected Format: Delegator, Weight (%), HIVE Share, NECTAR to Issue</span>
+        </div>
+    </div>
+
+    <div id="previewContainer" style="display: none;">
+        <div class="stats">
+            <div class="stat-box">
+                <span id="totalAccounts" class="val" style="color: #fff;">0</span>
+                <span style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase;">Total Users</span>
+            </div>
+            <div class="stat-box" style="background: #022c22;">
+                <span id="totalTokens" class="val" style="color: #34d399;">0.000000</span>
+                <span style="font-size: 0.65rem; color: #6ee7b7; text-transform: uppercase;">Total NECTAR to Mint</span>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>NECTAR Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="payoutRows"></tbody>
+        </table>
+
+        <div class="action-bar">
+            <input type="text" id="memoInput" class="memo-input" placeholder="Optional Transaction Memo (e.g. Curation Payout)">
+            <button id="sendBatchBtn" onclick="processBatchPayouts()">Execute Keychain Transfers</button>
+        </div>
+    </div>
+
+    <div id="status"></div>
+</div>
+
+<script>
+    let payoutList = [];
+    const SYMBOL = "NECTAR";
+
+    // Setup visual states for drag-and-drop mechanics
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('csvFileInput');
+
+    fileInput.addEventListener('change', handleFileSelect);
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); });
+
+    function handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        document.getElementById('uploadText').innerText = `Selected File: ${file.name}`;
+        
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            parseCSVData(evt.target.result);
+        };
+        reader.readAsText(file);
+    }
+
+    // CSV Parser supporting varied columns based on your script outputs
+    function parseCSVData(text) {
+        payoutList = [];
+        const lines = text.split(/\r?\n/);
+        let tokenSum = 0;
+
+        const tbody = document.getElementById('payoutRows');
+        tbody.innerHTML = '';
+
+        // Loop over lines, skip the first header line
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const columns = line.split(',');
+            if (columns.length < 2) continue;
+
+            // Extract the user name safely, stripping away surrounding spaces or @ symbols
+            let username = columns[0].trim().toLowerCase().replace('@', '');
+            
+            // The NECTAR token quantity is universally the last element in your payout report rows
+            let amountStr = columns[columns.length - 1].trim();
+            let amount = parseFloat(amountStr);
+
+            if (username && !isNaN(amount) && amount > 0) {
+                tokenSum += amount;
+                payoutList.push({ username, amount, status: 'Pending' });
+
+                tbody.innerHTML += `<tr id="user-row-${username}">
+                    <td><strong>@${username}</strong></td>
+                    <td>${amount.toFixed(6)} ${SYMBOL}</td>
+                    <td><span class="badge" id="badge-${username}">Ready</span></td>
+                </tr>`;
+            }
+        }
+
+        if (payoutList.length > 0) {
+            document.getElementById('totalAccounts').innerText = payoutList.length;
+            document.getElementById('totalTokens').innerText = tokenSum.toFixed(6);
+            document.getElementById('previewContainer').style.display = 'block';
+            hideStatus();
+        } else {
+            showStatus('Error: Could not extract valid username/token rows from this CSV file.', 'status-error');
+        }
+    }
+
+    // Sequentially processing payouts with Keychain requests
+    async function processBatchPayouts() {
+        if (!window.hive_keychain) {
+            showStatus('Execution Blocked: Please install the Hive Keychain browser extension to run automatic payouts.', 'status-error');
+            return;
+        }
+
+        const btn = document.getElementById('sendBatchBtn');
+        const memo = document.getElementById('memoInput').value.trim() || "NECTAR Distribution Payout";
+        
+        btn.disabled = true;
+        showStatus('Awaiting Signature: Please confirm the batch requests appearing inside Hive Keychain...', 'status-loading');
+
+        let successfulTransfers = 0;
+
+        // Process individual token payouts sequentially
+        for (let entry of payoutList) {
+            updateBadge(entry.username, 'Processing...', 'status-loading');
+            
+            // Format the transaction custom JSON specific to the Hive Engine Token Contract protocol
+            const hiveEnginePayload = {
+                contractName: "tokens",
+                contractAction: "transfer",
+                contractPayload: {
+                    symbol: SYMBOL,
+                    to: entry.username,
+                    quantity: entry.amount.toFixed(6),
+                    memo: memo
+                }
+            };
+
+            try {
+                const response = await broadcastKeychainCustomJson(hiveEnginePayload);
+                if (response && response.success) {
+                    entry.status = 'Success';
+                    updateBadge(entry.username, 'Transferred', 'badge-success');
+                    successfulTransfers++;
+                } else {
+                    entry.status = 'Rejected';
+                    updateBadge(entry.username, 'Failed/Rejected', 'badge-error');
+                }
+            } catch (err) {
+                entry.status = 'Error';
+                updateBadge(entry.username, 'Failed', 'badge-error');
+            }
+        }
+
+        // Final summary status
+        if (successfulTransfers === payoutList.length) {
+            showStatus(`Success! All ${successfulTransfers} NECTAR payouts processed smoothly.`, 'status-success');
+        } else {
+            showStatus(`Batch complete with exceptions. Successful updates: ${successfulTransfers}/${payoutList.length}. Check row details above.`, 'status-error');
+        }
+        btn.disabled = false;
+    }
+
+    // Promisified helper wrapper converting Keychain's callback architecture to standard async awaits
+    function broadcastKeychainCustomJson(payload) {
+        return new Promise((resolve) => {
+            // Prompts active user context choice. Leaving account blank tells Keychain to use its active chosen identity wrapper
+            window.hive_keychain.requestCustomJson(
+                null, 
+                "ssc-mainnet-hive", 
+                "Active", 
+                JSON.stringify(payload), 
+                `Mint & Transfer ${payload.contractPayload.quantity} NECTAR to ${payload.contractPayload.to}`, 
+                function(response) {
+                    resolve(response);
+                }
+            );
+        });
+    }
+
+    function updateBadge(username, text, className) {
+        const badge = document.getElementById(`badge-${username}`);
+        if (badge) {
+            badge.innerText = text;
+            badge.className = `badge ${className}`;
+        }
+    }
+
+    function showStatus(text, className) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerText = text;
+        statusDiv.className = className;
+        statusDiv.style.display = 'block';
+    }
+
+    function hideStatus() {
+        document.getElementById('status').style.display = 'none';
+    }
+</script>
+</body>
+</html>
