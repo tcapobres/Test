@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NECTAR Time-Frame Issuer</title>
+    <script src="https://unpkg.com/@hiveio/dhive@latest/dist/dhive.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #f1f5f9; padding: 20px; }
+        .card { max-width: 900px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #334155; }
+        h2 { color: #f43f5e; text-align: center; margin-bottom: 20px; }
+        .config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; background: #0f172a; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; font-weight: bold; }
+        input { background: #1e293b; border: 1px solid #475569; color: white; padding: 8px; border-radius: 6px; outline: none; }
+        button { background: #f43f5e; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        button:hover { background: #e11d48; }
+        .btn-secondary { background: #334155; margin-left: 10px; }
+        .btn-secondary:hover { background: #475569; }
+        .btn-success { background: #10b981; margin-left: 10px; }
+        .btn-success:hover { background: #059669; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: #0f172a; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #334155; }
+        .val { display: block; font-size: 1.2rem; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th { text-align: left; color: #64748b; font-size: 0.7rem; padding: 10px; border-bottom: 2px solid #334155; }
+        td { padding: 12px 10px; border-bottom: 1px solid #334155; font-size: 0.85rem; }
+        .loading-bar { color: #fbbf24; text-align: center; padding: 20px; font-weight: bold; }
+        .action-bar { display: flex; justify-content: flex-end; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>@nectarbytes Reward Scanner</h2>
+    
+    <div class="config-grid">
+        <div class="input-group">
+            <label>Start Date</label>
+            <input type="date" id="startDate">
+        </div>
+        <div class="input-group">
+            <label>End Date</label>
+            <input type="date" id="endDate">
+        </div>
+        <div class="input-group">
+            <label>HIVE per 1 NECTAR</label>
+            <input type="number" id="priceInput" value="1.0" step="0.1">
+        </div>
+        <button onclick="calculateRewards()">Run Time-Frame Scan</button>
+    </div>
+
+    <div id="status"></div>
+
+    <div id="content" style="display:none;">
+        <div class="stats">
+            <div class="stat-box">
+                <span id="totalCuration" class="val" style="color: #fff;">0.00</span>
+                <span style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase;">HIVE Earned (100%)</span>
+            </div>
+            <div class="stat-box">
+                <span id="opCount" class="val" style="color: #fff;">0</span>
+                <span style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase;">Rewards Found</span>
+            </div>
+            <div class="stat-box" style="background: #450a0a;">
+                <span id="totalNectar" class="val" style="color: #f43f5e;">0.000000</span>
+                <span style="font-size: 0.65rem; color: #fda4af; text-transform: uppercase;">NECTAR to Issue (50%)</span>
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn-secondary" onclick="downloadCSV()">Download CSV</button>
+            <button class="btn-success" onclick="processKeychainPayouts()">Process Keychain Payouts</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Delegator</th>
+                    <th>Weight</th>
+                    <th>HIVE Share (50%)</th>
+                    <th>NECTAR to Issue</th>
+                </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const client = new dhive.Client(["https://api.deathwing.me", "https://api.hive.blog"]);
+    const target = 'nectarbytes';
+    let scanResults = []; 
+
+    const today = new Date();
+    const lastWeek = new Date();
+    lastWeek.setDate(today.getDate() - 7);
+    document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    document.getElementById('startDate').value = lastWeek.toISOString().split('T')[0];
+
+    async function calculateRewards() {
+        const status = document.getElementById('status');
+        status.style.display = 'block';
+        const price = parseFloat(document.getElementById('priceInput').value);
+        const startTs = new Date(document.getElementById('startDate').value).getTime();
+        const endTs = new Date(document.getElementById('endDate').value).getTime() + 86400000; 
+
+        status.innerHTML = '<div class="loading-bar">Initializing historical ledger analysis...</div>';
+        document.getElementById('content').style.display = 'none';
+        scanResults = []; 
+
+        try {
+            const props = await client.database.getDynamicGlobalProperties();
+            const hpRate = parseFloat(props.total_vesting_fund_hive) / parseFloat(props.total_vesting_shares);
+
+            const accountInfo = await client.database.getAccounts([target]);
+            const targetReceivedVests = parseFloat(accountInfo[0].received_vesting_shares);
+
+            let activeDelegations = new Map();
+            let totalCurationVests = 0;
+            let rewardsCount = 0;
+            let lastId = -1; 
+            let finishedScanningDelegations = false;
+
+            while (true) {
+                let currentLimit = 1000;
+                if (lastId !== -1 && lastId < 1000) {
+                    currentLimit = lastId + 1;
+                }
+
+                const history = await client.database.getAccountHistory(target, lastId, currentLimit);
+                if (!history || history.length === 0) break;
+
+                const reversed = [...history].reverse();
+
+                for (const item of reversed) {
+                    const op = item[1].op;
+                    const timestamp = new Date(item[1].timestamp + 'Z').getTime();
+
+                    if (timestamp >= startTs && timestamp <= endTs) {
+                        if (op[0] === 'curation_reward') {
+                            totalCurationVests += parseFloat(op[1].reward);
+                            rewardsCount++;
+                        }
+                    }
+
+                    if (!finishedScanningDelegations && op[0] === 'delegate_vesting_shares' && op[1].delegatee === target) {
+                        const delegator = op[1].delegator;
+                        const vests = parseFloat(op[1].vesting_shares);
+                        
+                        if (!activeDelegations.has(delegator)) {
+                            if (vests > 0) {
+                                activeDelegations.set(delegator, vests);
+                            } else {
+                                activeDelegations.set(delegator, 0);
+                            }
+                        }
+                    }
+                }
+
+                let trackedVestsTotal = 0;
+                activeDelegations.forEach(v => trackedVestsTotal += v);
+                if (Math.abs(trackedVestsTotal - targetReceivedVests) < 0.1) {
+                    finishedScanningDelegations = true;
+                }
+
+                const oldestTimestampFetched = new Date(history[0][1].timestamp + 'Z').getTime();
+                if (oldestTimestampFetched < startTs && finishedScanningDelegations) {
+                    break;
+                }
+
+                if (history[0][0] === 0) {
+                    break;
+                }
+
+                lastId = history[0][0] - 1; 
+                if (lastId < 0) break;
+                
+                status.innerHTML = `<div class="loading-bar">Scanning history (Index: ${lastId})...</div>`;
+            }
+
+            activeDelegations.forEach((vests, user) => {
+                if (vests === 0) activeDelegations.delete(user);
+            });
+
+            let totalVestsDelegated = 0;
+            activeDelegations.forEach((vests, user) => {
+                // Exclude bulliontools from weight considerations to let other pool shares adjust properly
+                if (user !== 'bulliontools') {
+                    totalVestsDelegated += vests;
+                }
+            });
+
+            const totalHive = totalCurationVests * hpRate;
+            const rows = document.getElementById('rows');
+            rows.innerHTML = '';
+            let totalNectarGlobal = 0;
+
+            if (activeDelegations.size === 0 || totalVestsDelegated === 0) {
+                status.innerHTML = `<div style="color:#fbbf24; text-align:center;">No active historical delegations recovered for @${target}.</div>`;
+                return;
+            }
+
+            activeDelegations.forEach((vests, user) => {
+                // EXCLUSION FILTER: Skip calculation and listing for bulliontools
+                if (user === 'bulliontools') return;
+
+                const share = vests / totalVestsDelegated;
+                
+                const hiveShare = (totalHive * 0.5) * share;
+                const nectar = hiveShare / price;
+                totalNectarGlobal += nectar;
+
+                scanResults.push({
+                    delegator: user,
+                    weight: (share * 100).toFixed(2),
+                    hiveShare: hiveShare.toFixed(3),
+                    nectarToIssue: nectar.toFixed(6)
+                });
+
+                rows.innerHTML += `<tr>
+                    <td><strong>@${user}</strong></td>
+                    <td>${(share * 100).toFixed(2)}%</td>
+                    <td>${hiveShare.toFixed(3)} HIVE</td>
+                    <td style="color:#10b981; font-weight:bold;">${nectar.toFixed(6)} NECTAR</td>
+                </tr>`;
+            });
+
+            document.getElementById('totalCuration').innerText = totalHive.toFixed(3);
+            document.getElementById('opCount').innerText = rewardsCount;
+            document.getElementById('totalNectar').innerText = totalNectarGlobal.toFixed(6);
+            
+            status.style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+
+        } catch (e) {
+            status.innerHTML = `<div style="color:#f87171; text-align:center;">Scan Failed: ${e.message}</div>`;
+        }
+    }
+
+    function downloadCSV() {
+        if (scanResults.length === 0) return;
+
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Delegator,Weight (%),HIVE Share (50%),NECTAR to Issue\n";
+
+        scanResults.forEach(row => {
+            csvContent += `${row.delegator},${row.weight},${row.hiveShare},${row.nectarToIssue}\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `nectar_payouts_${startDate}_to_${endDate}.csv`);
+        document.body.appendChild(link);
+
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // NEW KEYCHAIN INTEGRATION
+    function processKeychainPayouts() {
+        if (!window.hive_keychain) {
+            alert("Hive Keychain extension not detected. Please install it to use this feature.");
+            return;
+        }
+
+        if (scanResults.length === 0) {
+            alert("No scan results to distribute. Please run a time-frame scan first.");
+            return;
+        }
+
+        // Filters out accounts getting rounded down to 0 NECTAR to prevent transaction failures
+        const validPayouts = scanResults.filter(row => parseFloat(row.nectarToIssue) > 0);
+
+        if (validPayouts.length === 0) {
+            alert("No valid non-zero NECTAR payouts calculated.");
+            return;
+        }
+
+        const confirmPayout = confirm(`You are about to issue NECTAR to ${validPayouts.length} delegators. Do you want to broadcast this via Hive Keychain?`);
+        if (!confirmPayout) return;
+
+        // Formulate Hive Engine standard custom JSON structures
+        // Chunking distributions into separate operations if the list gets heavy
+        const txOperations = validPayouts.map(row => {
+            return {
+                contractName: "tokens",
+                contractAction: "transfer",
+                contractPayload: {
+                    symbol: "NECTAR",
+                    to: row.delegator,
+                    quantity: row.nectarToIssue,
+                    memo: `NECTAR Reward Payout (${document.getElementById('startDate').value} to ${document.getElementById('endDate').value})`
+                }
+            };
+        });
+
+        // Broadcast directly using Keychain's generic Custom JSON multi-op handler
+        window.hive_keychain.requestCustomJson(
+            target, // Authorizing account
+            "ssc-mainnet-hive", // Hive Engine Contract ID
+            "Active", // Required authority level
+            JSON.stringify(txOperations), 
+            "NECTAR Automated Distribution Payout", 
+            function(response) {
+                if (response.success) {
+                    alert(`Payout successfully broadcasted! TX ID: ${response.result.id}`);
+                } else {
+                    alert(`Distribution failed or cancelled: ${response.message}`);
+                }
+            }
+        );
+    }
+</script>
+</body>
+</html>
