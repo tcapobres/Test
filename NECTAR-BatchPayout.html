@@ -10,18 +10,7 @@
         .card { max-width: 900px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #334155; }
         h2 { color: #f43f5e; text-align: center; margin-bottom: 20px; }
         
-        /* Updated Mobile-friendly Drop Zone Styles */
-        .upload-section { background: #0f172a; border: 2px dashed #475569; padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 20px; transition: 0.2s; }
-        .upload-section.dragover { border-color: #f43f5e; background: #1e1b4b; }
-        
-        /* The hidden file input is kept natively reachable but out of sight layout-wise */
-        .hidden-file-input { display: none; }
-        
-        /* This explicit label button guarantees mobile click registration */
-        .file-label-btn { display: inline-block; background: #f43f5e; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
-        .file-label-btn:hover { background: #e11d48; }
-        
-        .upload-text { font-size: 0.95rem; color: #94a3b8; line-height: 1.6; }
+        textarea { width: 100%; height: 150px; background: #0f172a; border: 1px solid #475569; color: #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 10px; resize: vertical; box-sizing: border-box; }
         
         .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
         .stat-box { background: #0f172a; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #334155; }
@@ -52,14 +41,8 @@
 <div class="card">
     <h2>NECTAR Payout Batch Issuer</h2>
     
-    <div class="upload-section" id="dropZone">
-        <div class="upload-text" id="uploadText">
-            Drag and drop your payout CSV here, or click below:<br>
-            <label for="csvFileInput" class="file-label-btn">Choose CSV File</label>
-            <input type="file" id="csvFileInput" class="hidden-file-input" accept=".csv">
-            <br><span style="font-size: 0.75rem; color: #64748b;">Expected Columns: Delegator, Weight (%), HIVE Share, NECTAR to Issue</span>
-        </div>
-    </div>
+    <textarea id="csvInput" placeholder="Paste your CSV data here (Format: Delegator, Weight, Hive Share, Amount)"></textarea>
+    <button onclick="handleManualInput()" style="width: 100%; margin-bottom: 20px;">Process Pasted Data</button>
 
     <div id="previewContainer" style="display: none;">
         <div class="stats">
@@ -85,7 +68,7 @@
         </table>
 
         <div class="action-bar">
-            <input type="text" id="memoInput" class="memo-input" placeholder="Optional Transaction Memo (e.g. Curation Payout)">
+            <input type="text" id="memoInput" class="memo-input" placeholder="Optional Transaction Memo">
             <button id="sendBatchBtn" onclick="processBatchPayouts()">Execute Keychain Transfers</button>
         </div>
     </div>
@@ -97,166 +80,6 @@
     let payoutList = [];
     const SYMBOL = "NECTAR";
 
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('csvFileInput');
-
-    fileInput.addEventListener('change', handleFileSelect);
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); handleDrop(e); });
-
-    function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const file = dt.files[0];
-        if (file) {
-            fileInput.files = dt.files;
-            processFile(file);
-        }
-    }
-
-    function handleFileSelect(e) {
-        const file = e.target.files[0];
-        if (file) {
-            processFile(file);
-        }
-    }
-
-    function processFile(file) {
-        document.getElementById('uploadText').innerHTML = `Selected File: <strong>${file.name}</strong><br><label for="csvFileInput" class="file-label-btn">Change File</label>`;
-        
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            parseCSVData(evt.target.result);
-        };
-        reader.readAsText(file);
-    }
-
-    function parseCSVData(text) {
-        payoutList = [];
-        const lines = text.split(/\r?\n/);
-        let tokenSum = 0;
-
-        const tbody = document.getElementById('payoutRows');
-        tbody.innerHTML = '';
-
-        for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
-
-            const columns = line.split(',');
-            if (columns.length < 2) continue;
-
-            let username = columns[0].trim().toLowerCase().replace('@', '');
-            let amountStr = columns[columns.length - 1].trim();
-            let amount = parseFloat(amountStr);
-
-            if (username && !isNaN(amount) && amount > 0) {
-                tokenSum += amount;
-                payoutList.push({ username, amount, status: 'Pending' });
-
-                tbody.innerHTML += `<tr id="user-row-${username}">
-                    <td><strong>@${username}</strong></td>
-                    <td>${amount.toFixed(6)} ${SYMBOL}</td>
-                    <td><span class="badge" id="badge-${username}">Ready</span></td>
-                </tr>`;
-            }
-        }
-
-        if (payoutList.length > 0) {
-            document.getElementById('totalAccounts').innerText = payoutList.length;
-            document.getElementById('totalTokens').innerText = tokenSum.toFixed(6);
-            document.getElementById('previewContainer').style.display = 'block';
-            hideStatus();
-        } else {
-            showStatus('Error: Could not extract valid username/token rows from this CSV file.', 'status-error');
-        }
-    }
-
-    async function processBatchPayouts() {
-        if (!window.hive_keychain) {
-            showStatus('Execution Blocked: Please install or open this inside the Hive Keychain app.', 'status-error');
-            return;
-        }
-
-        const btn = document.getElementById('sendBatchBtn');
-        const memo = document.getElementById('memoInput').value.trim() || "NECTAR Distribution Payout";
-        
-        btn.disabled = true;
-        showStatus('Awaiting Signature: Please confirm the requests inside Hive Keychain...', 'status-loading');
-
-        let successfulTransfers = 0;
-
-        for (let entry of payoutList) {
-            updateBadge(entry.username, 'Processing...', 'status-loading');
-            
-            const hiveEnginePayload = {
-                contractName: "tokens",
-                contractAction: "transfer",
-                contractPayload: {
-                    symbol: SYMBOL,
-                    to: entry.username,
-                    quantity: entry.amount.toFixed(6),
-                    memo: memo
-                }
-            };
-
-            try {
-                const response = await broadcastKeychainCustomJson(hiveEnginePayload);
-                if (response && response.success) {
-                    entry.status = 'Success';
-                    updateBadge(entry.username, 'Transferred', 'badge-success');
-                    successfulTransfers++;
-                } else {
-                    entry.status = 'Rejected';
-                    updateBadge(entry.username, 'Failed/Rejected', 'badge-error');
-                }
-            } catch (err) {
-                entry.status = 'Error';
-                updateBadge(entry.username, 'Failed', 'badge-error');
-            }
-        }
-
-        if (successfulTransfers === payoutList.length) {
-            showStatus(`Success! All ${successfulTransfers} NECTAR payouts processed smoothly.`, 'status-success');
-        } else {
-            showStatus(`Batch complete with exceptions. Successful updates: ${successfulTransfers}/${payoutList.length}. Check row details above.`, 'status-error');
-        }
-        btn.disabled = false;
-    }
-
-    function broadcastKeychainCustomJson(payload) {
-        return new Promise((resolve) => {
-            window.hive_keychain.requestCustomJson(
-                null, 
-                "ssc-mainnet-hive", 
-                "Active", 
-                JSON.stringify(payload), 
-                `Mint & Transfer ${payload.contractPayload.quantity} NECTAR to ${payload.contractPayload.to}`, 
-                function(response) {
-                    resolve(response);
-                }
-            );
-        });
-    }
-
-    function updateBadge(username, text, className) {
-        const badge = document.getElementById(`badge-${username}`);
-        if (badge) {
-            badge.innerText = text;
-            badge.className = `badge ${className}`;
-        }
-    }
-
-    function showStatus(text, className) {
-        const statusDiv = document.getElementById('status');
-        statusDiv.innerText = text;
-        statusDiv.className = className;
-        statusDiv.style.display = 'block';
-    }
-
-    function hideStatus() {
-        document.getElementById('status').style.display = 'none';
-    }
-</script>
-</body>
-</html>
+    function handleManualInput() {
+        const text = document.getElementById('csvInput').value;
+        parseCSVData(text);
