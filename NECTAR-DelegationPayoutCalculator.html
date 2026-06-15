@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NECTAR Time-Frame Issuer</title>
+    <title>ELIXIR Time-Frame Issuer</title>
     <script src="https://unpkg.com/@hiveio/dhive@latest/dist/dhive.js"></script>
     <style>
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #f1f5f9; padding: 20px; }
         .card { max-width: 900px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #334155; }
-        h2 { color: #f43f5e; text-align: center; margin-bottom: 20px; }
+        h2 { color: #8b5cf6; text-align: center; margin-bottom: 20px; }
         .config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; background: #0f172a; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; }
         .input-group { display: flex; flex-direction: column; }
         label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; font-weight: bold; }
         input { background: #1e293b; border: 1px solid #475569; color: white; padding: 8px; border-radius: 6px; outline: none; }
-        button { background: #f43f5e; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
-        button:hover { background: #e11d48; }
+        button { background: #8b5cf6; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        button:hover { background: #7c3aed; }
         .btn-secondary { background: #334155; margin-left: 10px; }
         .btn-success { background: #10b981; margin-left: 10px; }
         .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
@@ -42,7 +42,7 @@
             <input type="date" id="endDate">
         </div>
         <div class="input-group">
-            <label>NECTAR Price</label>
+            <label>ELIXIR Price</label>
             <input type="number" id="priceInput" value="1.0" step="0.1">
         </div>
         <button onclick="calculateRewards()">Run Time-Frame Scan</button>
@@ -60,9 +60,9 @@
                 <span id="opCount" class="val" style="color: #fff;">0</span>
                 <span style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase;">Rewards Found</span>
             </div>
-            <div class="stat-box" style="background: #450a0a;">
-                <span id="totalNectar" class="val" style="color: #f43f5e;">0.000000</span>
-                <span style="font-size: 0.65rem; color: #fda4af; text-transform: uppercase;">NECTAR to Issue</span>
+            <div class="stat-box" style="background: #2e1065;">
+                <span id="totalElixir" class="val" style="color: #8b5cf6;">0.000000</span>
+                <span style="font-size: 0.65rem; color: #c4b5fd; text-transform: uppercase;">ELIXIR to Issue</span>
             </div>
         </div>
 
@@ -77,7 +77,7 @@
                     <th>Delegator</th>
                     <th>Weight</th>
                     <th>HIVE Share</th>
-                    <th>NECTAR to Issue</th>
+                    <th>ELIXIR to Issue</th>
                 </tr>
             </thead>
             <tbody id="rows"></tbody>
@@ -156,22 +156,22 @@
             const totalHive = totalCurationVests * hpRate;
             const rows = document.getElementById('rows');
             rows.innerHTML = '';
-            let totalNectarGlobal = 0;
+            let totalElixirGlobal = 0;
 
             activeDelegations.forEach((vests, user) => {
                 if (user === 'bulliontools') return;
                 const share = vests / totalVestsDelegated;
                 const hiveShare = totalHive * share;
-                // Updated Formula: NECTAR = HIVE Share * (Price * 0.5)
-                const nectar = hiveShare * (price * 0.5);
-                totalNectarGlobal += nectar;
-                scanResults.push({ delegator: user, weight: (share * 100).toFixed(2), hiveShare: hiveShare.toFixed(3), nectarToIssue: nectar.toFixed(6) });
-                rows.innerHTML += `<tr><td><strong>@${user}</strong></td><td>${(share * 100).toFixed(2)}%</td><td>${hiveShare.toFixed(3)} HIVE</td><td style="color:#10b981; font-weight:bold;">${nectar.toFixed(6)} NECTAR</td></tr>`;
+                // Updated Formula: ELIXIR = HIVE Share * (Price * 0.5)
+                const elixir = hiveShare * (price * 0.5);
+                totalElixirGlobal += elixir;
+                scanResults.push({ delegator: user, weight: (share * 100).toFixed(2), hiveShare: hiveShare.toFixed(3), elixirToIssue: elixir.toFixed(6) });
+                rows.innerHTML += `<tr><td><strong>@${user}</strong></td><td>${(share * 100).toFixed(2)}%</td><td>${hiveShare.toFixed(3)} HIVE</td><td style="color:#8b5cf6; font-weight:bold;">${elixir.toFixed(6)} ELIXIR</td></tr>`;
             });
 
             document.getElementById('totalCuration').innerText = totalHive.toFixed(3);
             document.getElementById('opCount').innerText = rewardsCount;
-            document.getElementById('totalNectar').innerText = totalNectarGlobal.toFixed(6);
+            document.getElementById('totalElixir').innerText = totalElixirGlobal.toFixed(6);
             status.style.display = 'none';
             document.getElementById('content').style.display = 'block';
         } catch (e) {
@@ -183,24 +183,24 @@
         if (scanResults.length === 0) return;
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
-        let csvContent = "data:text/csv;charset=utf-8,Delegator,Weight,HIVE Share,NECTAR to Issue\n";
-        scanResults.forEach(row => { csvContent += `${row.delegator},${row.weight},${row.hiveShare},${row.nectarToIssue}\n`; });
+        let csvContent = "data:text/csv;charset=utf-8,Delegator,Weight,HIVE Share,ELIXIR to Issue\n";
+        scanResults.forEach(row => { csvContent += `${row.delegator},${row.weight},${row.hiveShare},${row.elixirToIssue}\n`; });
         const link = document.createElement("a");
         link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", `nectar_payouts_${startDate}_to_${endDate}.csv`);
+        link.setAttribute("download", `elixir_payouts_${startDate}_to_${endDate}.csv`);
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
 
     function processKeychainPayouts() {
         if (!window.hive_keychain) { alert("Hive Keychain not detected."); return; }
-        const validPayouts = scanResults.filter(row => parseFloat(row.nectarToIssue) > 0);
+        const validPayouts = scanResults.filter(row => parseFloat(row.elixirToIssue) > 0);
         if (validPayouts.length === 0) return;
         const txOperations = validPayouts.map(row => ({
             contractName: "tokens",
             contractAction: "transfer",
-            contractPayload: { symbol: "NECTAR", to: row.delegator, quantity: row.nectarToIssue, memo: `NECTAR Reward Payout (${document.getElementById('startDate').value} to ${document.getElementById('endDate').value})` }
+            contractPayload: { symbol: "ELIXIR", to: row.delegator, quantity: row.elixirToIssue, memo: `ELIXIR Reward Payout (${document.getElementById('startDate').value} to ${document.getElementById('endDate').value})` }
         }));
-        window.hive_keychain.requestCustomJson(target, "ssc-mainnet-hive", "Active", JSON.stringify(txOperations), "NECTAR Automated Distribution", (res) => {
+        window.hive_keychain.requestCustomJson(target, "ssc-mainnet-hive", "Active", JSON.stringify(txOperations), "ELIXIR Automated Distribution", (res) => {
             if (res.success) alert("Payout successful!");
         });
     }
