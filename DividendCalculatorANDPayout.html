@@ -5,10 +5,12 @@
     <title>ELIXIR Dividend Tool</title>
     <script src="https://unpkg.com/@hiveio/dhive@latest/dist/dhive.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .controls { background: #f4f4f4; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        body { font-family: sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
+        .controls { background: #f4f4f4; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        th { background-color: #eaeaea; }
+        .error-msg { color: #cc0000; background: #fff0f0; padding: 10px; border-radius: 4px; border: 1px solid #ffcccc; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -25,7 +27,8 @@
         <button onclick="showPayments()">2. Generate Payment List</button>
     </div>
 
-    <div id="status" style="font-weight: bold; color: #0066cc; margin-bottom: 15px;"></div>
+    <div id="status" style="font-weight: bold; color: #0066cc; margin-bottom: 15px; white-space: pre-wrap;"></div>
+    
     <table id="resultTable">
         <thead>
             <tr>
@@ -39,40 +42,78 @@
     </table>
 
     <script>
-        // Utilizing a failover array of robust public endpoints
-        const client = new dhive.Client(['https://api.hive.blog', 'https://api.deathwing.me', 'https://hive-api.arcange.eu']);
+        // Resilient array of public Hive nodes
+        const hiveNodes = ['https://api.hive.blog', 'https://api.deathwing.me', 'https://hive-api.arcange.eu', 'https://anyx.io'];
+        const client = new dhive.Client(hiveNodes);
+        
+        // Multi-node failover list for Hive Engine Layer-2 data
+        const engineNodes = [
+            'https://api.hive-engine.com/rpc/contracts',
+            'https://engine.rishipanthee.com/',
+            'https://api2.hive-engine.com/rpc/contracts'
+        ];
+
         let eligibleUsers = [];
+
+        // Dynamic helper to fetch from Hive Engine across multiple fallbacks if one is down
+        async function fetchEngine(contract, table, query) {
+            let lastError = null;
+            for (let node of engineNodes) {
+                try {
+                    const res = await fetch(node, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: "2.0", 
+                            method: "find", 
+                            params: { contract, table, query }, 
+                            id: 1
+                        })
+                    });
+                    if (!res.ok) throw new Error(`HTTP status ${res.status}`);
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error.message || "Engine RPC error");
+                    return data.result;
+                } catch (err) {
+                    console.warn(`Node ${node} failed, trying next... Error:`, err.message);
+                    lastError = err;
+                }
+            }
+            throw new Error(`All Hive Engine nodes failed. Last error: ${lastError.message}`);
+        }
 
         async function runTool() {
             const startStr = document.getElementById('start').value;
             const endStr = document.getElementById('end').value;
+            const statusDiv = document.getElementById('status');
             
             if (!startStr || !endStr) {
                 alert("Please select both a start and end date.");
                 return;
             }
 
-            // Force browser inputs into exact UTC boundaries to align with the Hive blockchain clock
+            statusDiv.className = "";
+            statusDiv.innerText = "Connecting to Hive blockchain... Fetching last 50 blog posts.";
+            
+            // Explicitly force dates into full UTC midnights
             const start = new Date(startStr + 'T00:00:00Z').getTime();
             const end = new Date(endStr + 'T23:59:59Z').getTime(); 
             
-            const statusDiv = document.getElementById('status');
-            statusDiv.innerText = "Fetching your last 50 blog posts...";
-            
             try {
-                const posts = await client.database.getDiscussions('blog', { tag: 'nectarbytes', limit: 50 });
+                // Use a direct low-level call to ensure compliance with changing API nodes
+                const posts = await client.database.call('get_discussions_by_blog', [{ tag: 'nectarbytes', limit: 50 }]);
                 
-                if (!posts || posts.length === 0) {
-                    statusDiv.innerText = "No blog posts found for @nectarbytes.";
+                if (!posts || !Array.isArray(posts) || posts.length === 0) {
+                    statusDiv.innerText = "No blog posts discovered for account @nectarbytes.";
                     return;
                 }
 
                 let allVoters = new Set();
                 
-                // Directly query the raw voting data for every single post to bypass truncated summaries
+                // Pull un-truncated live vote arrays from the database for each post
                 for (let i = 0; i < posts.length; i++) {
                     const post = posts[i];
-                    statusDiv.innerText = `Scanning deep vote data for post ${i + 1}/${posts.length}: "${post.title.substring(0, 25)}..."`;
+                    statusDiv.innerText = `Scanning vote ledgers (${i + 1}/${posts.length}):\n"${post.title.substring(0, 40)}..."`;
                     
                     try {
                         const votes = await client.database.call('get_active_votes', [post.author, post.permlink]);
@@ -85,61 +126,52 @@
                             });
                         }
                     } catch (voteErr) {
-                        console.error(`Skipped permlink data for: ${post.permlink}`, voteErr);
+                        console.error(`Skipped permlink details for: ${post.permlink}`, voteErr);
                     }
                 }
 
                 const voters = [...allVoters];
                 
                 if (voters.length === 0) {
-                     statusDiv.innerText = "No votes were found on your recent posts within that specific date range.";
+                     statusDiv.innerText = "Zero upvotes matched your specified UTC window across your recent history.";
                      return;
                 }
 
-                statusDiv.innerText = `Found ${voters.length} unique voters. Fetching stakes from Hive Engine...`;
+                statusDiv.innerText = `Identified ${voters.length} unique voters. Validating Layer-2 stakes...`;
 
                 eligibleUsers = [];
                 for (let i = 0; i < voters.length; i++) {
                     const user = voters[i];
-                    statusDiv.innerText = `Checking ELIXIR Layer-2 balances (${i + 1}/${voters.length}): @${user}`;
+                    statusDiv.innerText = `Checking ELIXIR Staking Balances (${i + 1}/${voters.length}): @${user}`;
                     
                     try {
-                        const res = await fetch('https://api.hive-engine.com/rpc/contracts', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                jsonrpc: "2.0", 
-                                method: "find", 
-                                params: { contract: "tokens", table: "balances", query: { symbol: "ELIXIR", account: user } }, 
-                                id: 1
-                            })
-                        });
-                        const data = await res.json();
-                        
-                        const stake = data.result && data.result[0] ? parseFloat(data.result[0].stake) : 0;
+                        const balances = await fetchEngine("tokens", "balances", { symbol: "ELIXIR", account: user });
+                        const stake = balances && balances[0] ? parseFloat(balances[0].stake) : 0;
                         if (stake >= 50) {
                             eligibleUsers.push({ user, stake });
                         }
                     } catch (tokenErr) {
-                        console.error(`Hive Engine node timed out for user ${user}:`, tokenErr);
+                        console.error(`Skipping balance verification for user ${user}:`, tokenErr);
                     }
                 }
                 
-                statusDiv.innerText = `Done! Found ${eligibleUsers.length} users who upvoted you AND have 50+ staked ELIXIR.`;
+                statusDiv.innerText = `Success! Found ${eligibleUsers.length} matching users who upvoted you and hold 50+ staked ELIXIR.`;
+                
             } catch (error) {
-                console.error(error);
-                statusDiv.innerText = "An unexpected error occurred. Open your browser console (F12) to see details.";
+                console.error("Fatal Script Error:", error);
+                statusDiv.className = "error-msg";
+                statusDiv.innerText = `⚠️ SYSTEM ERROR DETECTED:\n${error.message}\n\n(If this says 'All Hive Engine nodes failed', the layer-2 network is currently undergoing an outage or heavily rate-limiting web requests.)`;
             }
         }
 
         function showPayments() {
             const total = parseFloat(document.getElementById('totalHive').value);
             if (isNaN(total) || total <= 0) {
-                alert("Please enter a valid total amount of HIVE to distribute.");
+                alert("Please input a positive non-zero quantity of HIVE to pay out.");
                 return;
             }
             if (eligibleUsers.length === 0) { 
-                alert("The eligibility roster is empty. Run step 1 successfully first."); 
+                alert("No eligible accounts loaded yet. Complete Step 1 successfully first."); 
                 return; 
             }
             
@@ -149,10 +181,10 @@
             
             eligibleUsers.forEach(u => {
                 tbody.innerHTML += `<tr>
-                    <td>${u.user}</td>
+                    <td><strong>@${u.user}</strong></td>
                     <td>${u.stake}</td>
                     <td>${payout}</td>
-                    <td><button onclick="send('${u.user}', '${payout}')">Send</button></td>
+                    <td><button onclick="send('${u.user}', '${payout}')">Send HIVE</button></td>
                 </tr>`;
             });
         }
@@ -160,10 +192,10 @@
         function send(user, amount) {
             if (window.hive_keychain) {
                 window.hive_keychain.requestTransfer('nectarbytes', user, amount, 'ELIXIR Dividend', 'HIVE', (r) => {
-                    console.log("Keychain receipt:", r);
+                    console.log("Keychain response payload:", r);
                 });
             } else {
-                alert("Hive Keychain browser extension not found.");
+                alert("Hive Keychain browser extension could not be detected.");
             }
         }
     </script>
