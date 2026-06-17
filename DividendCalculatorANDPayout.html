@@ -38,7 +38,8 @@
         </div>
         
         <div class="stat-display">
-            <strong>Total Pool Value:</strong> <span id="poolDisplay">0.000</span> HP (Calculated from Curation History)
+            <strong>Total Curation Earnings (100%):</strong> <span id="poolDisplay">0.000</span> HP 
+            <span style="margin-left: 20px; color: #4a5568; font-size: 0.95em;">(Payout default target set to 90%)</span>
         </div>
 
         <div class="flex-row">
@@ -50,8 +51,8 @@
                 </select>
             </div>
             <div>
-                <label for="totalHive">Override Payout Amount (HIVE):</label>
-                <input type="number" id="totalHive" placeholder="Auto-filled from HP" step="0.001">
+                <label for="totalHive">Payout Amount (HIVE):</label>
+                <input type="number" id="totalHive" placeholder="Auto-filled (90%)" step="0.001">
             </div>
             <button onclick="showPayments()">2. Generate Payment List</button>
         </div>
@@ -176,8 +177,13 @@
                 }
 
                 calculatedHP = totalVests * vestsToHpRatio;
+                
+                // Keep track of total raw curation earnings in the display banner
                 document.getElementById('poolDisplay').innerText = calculatedHP.toFixed(3);
-                document.getElementById('totalHive').value = calculatedHP.toFixed(3);
+                
+                // MODIFICATION: Auto-fill the payout box with exactly 90% of the raw curation total
+                const ninetyPercentPayout = calculatedHP * 0.90;
+                document.getElementById('totalHive').value = ninetyPercentPayout.toFixed(3);
 
                 statusDiv.innerText = "Curation calculation complete. Fetching ELIXIR holders from Hive-Engine...";
                 
@@ -199,7 +205,7 @@
                     .map(b => ({ user: b.account, stake: parseFloat(b.stake) || 0 }))
                     .filter(b => b.stake >= 50);
 
-                statusDiv.innerText = `Success!\nCalculated Curation Earnings: ${calculatedHP.toFixed(3)} HP\nFound ${eligibleUsers.length} accounts holding 50+ Staked ELIXIR.`;
+                statusDiv.innerText = `Success!\nCalculated Curation Earnings: ${calculatedHP.toFixed(3)} HP\nDefault Payout (90%): ${ninetyPercentPayout.toFixed(3)} HIVE\nFound ${eligibleUsers.length} accounts holding 50+ Staked ELIXIR.`;
                 showPayments();
 
             } catch (error) {
@@ -246,10 +252,9 @@
             if (window.hive_keychain) {
                 window.hive_keychain.requestTransfer('nectarbytes', user, amount, 'ELIXIR Curation Reward Dividend', 'HIVE', (r) => {
                     console.log("Keychain Response:", r);
-                    // Check if the transaction was successfully approved and broadcasted
                     if (r && r.success) {
                         btnElement.innerText = "SENT";
-                        btnElement.disabled = true; // Automatically changes color to red and completely locks the button via CSS styles
+                        btnElement.disabled = true;
                     }
                 });
             } else {
