@@ -2,29 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ELIXIR Dividend Tool</title>
+    <title>ELIXIR Curation Dividend Tool</title>
     <script src="https://unpkg.com/@hiveio/dhive@latest/dist/dhive.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
-        .controls { background: #f4f4f4; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; color: #333; }
+        .controls { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        .flex-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 15px; }
+        .stat-display { background: #edf2f7; padding: 15px; border-radius: 6px; font-size: 1.1em; border-left: 5px solid #3182ce; margin-bottom: 15px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-        th { background-color: #eaeaea; }
+        th, td { border: 1px solid #cbd5e0; padding: 12px; text-align: left; }
+        th { background-color: #edf2f7; }
+        button { background: #3182ce; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2b6cb0; }
+        button.send-btn { background: #38a169; padding: 6px 12px; font-size: 0.9em; }
+        button.send-btn:hover { background: #2f855a; }
         .error-msg { color: #cc0000; background: #fff0f0; padding: 10px; border-radius: 4px; border: 1px solid #ffcccc; margin-top: 10px; }
+        select, input { padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; }
     </style>
 </head>
 <body>
-    <h2>Hive Dividend Tool (@nectarbytes)</h2>
+    <h2>Hive Curation Dividend Tool (@nectarbytes)</h2>
     
     <div class="controls">
-        <label for="start">Start Date (UTC):</label>
-        <input type="date" id="start"> 
-        <label for="end">End Date (UTC):</label>
-        <input type="date" id="end">
-        <button onclick="runTool()">1. Fetch Voters & Verify Staked ELIXIR</button>
-        <br><br>
-        <input type="number" id="totalHive" placeholder="Total HIVE to pay" step="0.001">
-        <button onclick="showPayments()">2. Generate Payment List</button>
+        <div class="flex-row">
+            <div>
+                <label for="start">Start Date (UTC):</label>
+                <input type="date" id="start"> 
+            </div>
+            <div>
+                <label for="end">End Date (UTC):</label>
+                <input type="date" id="end">
+            </div>
+            <button onclick="runTool()">1. Calculate Rewards & Scan Holders</button>
+        </div>
+        
+        <div class="stat-display">
+            <strong>Total Pool Value:</strong> <span id="poolDisplay">0.000</span> HP (Calculated from Curation History)
+        </div>
+
+        <div class="flex-row">
+            <div>
+                <label for="distMethod">Distribution Scheme:</label>
+                <select id="distMethod" onchange="showPayments()">
+                    <option value="proportional">Proportional to ELIXIR Stake</option>
+                    <option value="even">Split Evenly Among Eligible Holders</option>
+                </select>
+            </div>
+            <div>
+                <label for="totalHive">Override Payout Amount (HIVE):</label>
+                <input type="number" id="totalHive" placeholder="Auto-filled from HP" step="0.001">
+            </div>
+            <button onclick="showPayments()">2. Generate Payment List</button>
+        </div>
     </div>
 
     <div id="status" style="font-weight: bold; color: #0066cc; margin-bottom: 15px; white-space: pre-wrap;"></div>
@@ -34,6 +63,7 @@
             <tr>
                 <th>User</th>
                 <th>Staked ELIXIR</th>
+                <th>Share %</th>
                 <th>Payout (HIVE)</th>
                 <th>Action</th>
             </tr>
@@ -42,11 +72,9 @@
     </table>
 
     <script>
-        // Resilient array of public Hive nodes
-        const hiveNodes = ['https://api.hive.blog', 'https://api.deathwing.me', 'https://hive-api.arcange.eu', 'https://anyx.io'];
+        const hiveNodes = ['https://api.deathwing.me', 'https://api.hive.blog', 'https://hive-api.arcange.eu'];
         const client = new dhive.Client(hiveNodes);
         
-        // Multi-node failover list for Hive Engine Layer-2 data
         const engineNodes = [
             'https://api.hive-engine.com/rpc/contracts',
             'https://engine.rishipanthee.com/',
@@ -54,9 +82,9 @@
         ];
 
         let eligibleUsers = [];
+        let calculatedHP = 0;
 
-        // Dynamic helper to fetch from Hive Engine across multiple fallbacks if one is down
-        async function fetchEngine(contract, table, query) {
+        async function fetchEngine(contract, table, query, limit = 1000, offset = 0) {
             let lastError = null;
             for (let node of engineNodes) {
                 try {
@@ -66,7 +94,7 @@
                         body: JSON.stringify({
                             jsonrpc: "2.0", 
                             method: "find", 
-                            params: { contract, table, query }, 
+                            params: { contract, table, query, limit, offset }, 
                             id: 1
                         })
                     });
@@ -75,7 +103,7 @@
                     if (data.error) throw new Error(data.error.message || "Engine RPC error");
                     return data.result;
                 } catch (err) {
-                    console.warn(`Node ${node} failed, trying next... Error:`, err.message);
+                    console.warn(`Node ${node} failed. Error:`, err.message);
                     lastError = err;
                 }
             }
@@ -93,106 +121,123 @@
             }
 
             statusDiv.className = "";
-            statusDiv.innerText = "Connecting to Hive blockchain... Fetching last 50 blog posts.";
+            statusDiv.innerText = "Connecting to Hive... Fetching network global parameters.";
             
-            // Explicitly force dates into full UTC midnights
-            const start = new Date(startStr + 'T00:00:00Z').getTime();
-            const end = new Date(endStr + 'T23:59:59Z').getTime(); 
+            const startTime = new Date(startStr + 'T00:00:00Z').getTime();
+            const endTime = new Date(endStr + 'T23:59:59Z').getTime(); 
             
             try {
-                // Use a direct low-level call to ensure compliance with changing API nodes
-                const posts = await client.database.call('get_discussions_by_blog', [{ tag: 'nectarbytes', limit: 50 }]);
-                
-                if (!posts || !Array.isArray(posts) || posts.length === 0) {
-                    statusDiv.innerText = "No blog posts discovered for account @nectarbytes.";
-                    return;
-                }
+                // Get VESTS to HP conversion factors
+                const props = await client.database.getDynamicGlobalProperties();
+                const totalVestingFund = parseFloat(props.total_vesting_fund_hive);
+                const totalVestingShares = parseFloat(props.total_vesting_shares);
+                const vestsToHpRatio = totalVestingFund / totalVestingShares;
 
-                let allVoters = new Set();
+                statusDiv.innerText = "Scanning @nectarbytes account history for curation rewards...";
                 
-                // Pull un-truncated live vote arrays from the database for each post
-                for (let i = 0; i < posts.length; i++) {
-                    const post = posts[i];
-                    statusDiv.innerText = `Scanning vote ledgers (${i + 1}/${posts.length}):\n"${post.title.substring(0, 40)}..."`;
-                    
-                    try {
-                        const votes = await client.database.call('get_active_votes', [post.author, post.permlink]);
-                        if (votes && Array.isArray(votes)) {
-                            votes.forEach(vote => {
-                                const voteTime = new Date(vote.time + 'Z').getTime();
-                                if (voteTime >= start && voteTime <= end) {
-                                    allVoters.add(vote.voter);
-                                }
-                            });
+                let totalVests = 0;
+                let startSeq = -1; 
+                const batchSize = 1000;
+                let processing = true;
+
+                while (processing) {
+                    const history = await client.database.call('get_account_history', ['nectarbytes', startSeq, batchSize]);
+                    if (!history || history.length === 0) break;
+
+                    const firstSeq = history[0][0];
+
+                    for (let i = history.length - 1; i >= 0; i--) {
+                        const item = history[i];
+                        const op = item[1].op;
+                        const timestamp = new Date(item[1].timestamp + 'Z').getTime();
+
+                        if (timestamp < startTime) {
+                            processing = false;
+                            break;
                         }
-                    } catch (voteErr) {
-                        console.error(`Skipped permlink details for: ${post.permlink}`, voteErr);
-                    }
-                }
 
-                const voters = [...allVoters];
-                
-                if (voters.length === 0) {
-                     statusDiv.innerText = "Zero upvotes matched your specified UTC window across your recent history.";
-                     return;
-                }
-
-                statusDiv.innerText = `Identified ${voters.length} unique voters. Validating Layer-2 stakes...`;
-
-                eligibleUsers = [];
-                for (let i = 0; i < voters.length; i++) {
-                    const user = voters[i];
-                    statusDiv.innerText = `Checking ELIXIR Staking Balances (${i + 1}/${voters.length}): @${user}`;
-                    
-                    try {
-                        const balances = await fetchEngine("tokens", "balances", { symbol: "ELIXIR", account: user });
-                        const stake = balances && balances[0] ? parseFloat(balances[0].stake) : 0;
-                        if (stake >= 50) {
-                            eligibleUsers.push({ user, stake });
+                        if (timestamp <= endTime && op[0] === 'curation_reward') {
+                            totalVests += parseFloat(op[1].reward);
                         }
-                    } catch (tokenErr) {
-                        console.error(`Skipping balance verification for user ${user}:`, tokenErr);
                     }
+
+                    statusDiv.innerText = `Scanning curation rewards... Looked back to sequence index: ${firstSeq}\nFound so far: ${(totalVests * vestsToHpRatio).toFixed(3)} HP`;
+
+                    if (firstSeq === 0 || startSeq === firstSeq) break;
+                    startSeq = firstSeq - 1;
                 }
+
+                calculatedHP = totalVests * vestsToHpRatio;
+                document.getElementById('poolDisplay').innerText = calculatedHP.toFixed(3);
+                document.getElementById('totalHive').value = calculatedHP.toFixed(3);
+
+                // Step 2: Fetch Hive Engine Token Holders
+                statusDiv.innerText = "Curation calculation complete. Fetching ELIXIR holders from Hive-Engine...";
                 
-                statusDiv.innerText = `Success! Found ${eligibleUsers.length} matching users who upvoted you and hold 50+ staked ELIXIR.`;
-                
+                let allHolders = [];
+                let offset = 0;
+                while (true) {
+                    statusDiv.innerText = `Downloading Layer-2 token registries (Offset: ${offset})...`;
+                    const balances = await fetchEngine("tokens", "balances", { symbol: "ELIXIR" }, batchSize, offset);
+                    if (!balances || balances.length === 0) break;
+                    
+                    allHolders = allHolders.concat(balances);
+                    if (balances.length < batchSize) break;
+                    offset += batchSize;
+                }
+
+                // Filter for users with >= 50 Staked
+                eligibleUsers = allHolders
+                    .map(b => ({ user: b.account, stake: parseFloat(b.stake) || 0 }))
+                    .filter(b => b.stake >= 50);
+
+                statusDiv.innerText = `Success!\nCalculated Curation Earnings: ${calculatedHP.toFixed(3)} HP\nFound ${eligibleUsers.length} accounts holding 50+ Staked ELIXIR.`;
+                showPayments();
+
             } catch (error) {
-                console.error("Fatal Script Error:", error);
+                console.error(error);
                 statusDiv.className = "error-msg";
-                statusDiv.innerText = `⚠️ SYSTEM ERROR DETECTED:\n${error.message}\n\n(If this says 'All Hive Engine nodes failed', the layer-2 network is currently undergoing an outage or heavily rate-limiting web requests.)`;
+                statusDiv.innerText = `⚠️ SYSTEM ERROR:\n${error.message}`;
             }
         }
 
         function showPayments() {
-            const total = parseFloat(document.getElementById('totalHive').value);
-            if (isNaN(total) || total <= 0) {
-                alert("Please input a positive non-zero quantity of HIVE to pay out.");
-                return;
-            }
-            if (eligibleUsers.length === 0) { 
-                alert("No eligible accounts loaded yet. Complete Step 1 successfully first."); 
-                return; 
-            }
-            
-            const payout = (total / eligibleUsers.length).toFixed(3);
+            const totalToPay = parseFloat(document.getElementById('totalHive').value);
+            const method = document.getElementById('distMethod').value;
             const tbody = document.getElementById('tbody');
             tbody.innerHTML = "";
-            
+
+            if (isNaN(totalToPay) || totalToPay <= 0) return;
+            if (eligibleUsers.length === 0) return;
+
+            const totalStakePool = eligibleUsers.reduce((sum, u) => sum + u.stake, 0);
+
             eligibleUsers.forEach(u => {
+                let payout = 0;
+                let sharePct = 0;
+
+                if (method === 'even') {
+                    payout = totalToPay / eligibleUsers.length;
+                    sharePct = (1 / eligibleUsers.length) * 100;
+                } else {
+                    sharePct = (u.stake / totalStakePool) * 100;
+                    payout = totalToPay * (u.stake / totalStakePool);
+                }
+
                 tbody.innerHTML += `<tr>
                     <td><strong>@${u.user}</strong></td>
-                    <td>${u.stake}</td>
-                    <td>${payout}</td>
-                    <td><button onclick="send('${u.user}', '${payout}')">Send HIVE</button></td>
+                    <td>${u.stake.toFixed(3)}</td>
+                    <td>${sharePct.toFixed(2)}%</td>
+                    <td><strong>${payout.toFixed(3)}</strong></td>
+                    <td><button class="send-btn" onclick="send('${u.user}', '${payout.toFixed(3)}')">Send HIVE</button></td>
                 </tr>`;
             });
         }
 
         function send(user, amount) {
             if (window.hive_keychain) {
-                window.hive_keychain.requestTransfer('nectarbytes', user, amount, 'ELIXIR Dividend', 'HIVE', (r) => {
-                    console.log("Keychain response payload:", r);
+                window.hive_keychain.requestTransfer('nectarbytes', user, amount, 'ELIXIR Curation Reward Dividend', 'HIVE', (r) => {
+                    console.log("Keychain Response:", r);
                 });
             } else {
                 alert("Hive Keychain browser extension could not be detected.");
