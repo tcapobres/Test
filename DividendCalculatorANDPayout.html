@@ -23,47 +23,115 @@
     </div>
 
     <div id="status"></div>
-    <table id="resultTable"><thead><tr><th>User</th><th>Staked ELIXIR</th><th>Payout (HIVE)</th><th>Action</th></tr></thead><tbody id="tbody"></tbody></table>
+    <table id="resultTable">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Staked ELIXIR</th>
+                <th>Payout (HIVE)</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
 
     <script>
         const client = new dhive.Client(['https://api.hive.blog']);
         let eligibleUsers = [];
 
         async function runTool() {
-            const start = new Date(document.getElementById('start').value).getTime();
-            const end = new Date(document.getElementById('end').value).getTime();
-            document.getElementById('status').innerText = "Analyzing curation history...";
+            const startStr = document.getElementById('start').value;
+            const endStr = document.getElementById('end').value;
             
-            const history = await client.database.getAccountHistory('nectarbytes', -1, 2000);
-            const voters = [...new Set(history.filter(h => h[1].op[0] === 'curation_reward' && h[1].timestamp * 1000 >= start && h[1].timestamp * 1000 <= end).map(h => h[1].op[1].voter))];
-
-            eligibleUsers = [];
-            for (let user of voters) {
-                // Querying the 'balances' table is more reliable for checking both liquid and staked amounts
-                const res = await fetch('https://api.hive-engine.com/rpc/contracts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        jsonrpc: "2.0", method: "find", params: { contract: "tokens", table: "balances", query: { symbol: "ELIXIR", account: user } }, id: 1
-                    })
-                });
-                const data = await res.json();
-                // Check 'stake' field in the balance object
-                const stake = data.result[0] ? parseFloat(data.result[0].stake) : 0;
-                if (stake >= 50) eligibleUsers.push({ user, stake });
+            if (!startStr || !endStr) {
+                alert("Please select both start and end dates.");
+                return;
             }
-            document.getElementById('status').innerText = `Found ${eligibleUsers.length} users with 50+ ELIXIR staked.`;
+
+            const start = new Date(startStr).getTime();
+            // Add 86399999ms to include the entire duration of the selected end date
+            const end = new Date(endStr).getTime() + 86399999; 
+            
+            document.getElementById('status').innerText = "Fetching recent posts to analyze active votes...";
+            
+            try {
+                // Fetch the last 100 posts by @nectarbytes
+                const posts = await client.database.getDiscussions('blog', { tag: 'nectarbytes', limit: 100 });
+                
+                let allVoters = new Set();
+                
+                // Extract all incoming votes that happened within the timeframe
+                posts.forEach(post => {
+                    if (post.active_votes) {
+                        post.active_votes.forEach(vote => {
+                            // Append 'Z' to properly parse the UTC time from Hive
+                            const voteTime = new Date(vote.time + 'Z').getTime();
+                            if (voteTime >= start && voteTime <= end) {
+                                allVoters.add(vote.voter);
+                            }
+                        });
+                    }
+                });
+
+                const voters = [...allVoters];
+                
+                if (voters.length === 0) {
+                     document.getElementById('status').innerText = "No voters found in that timeframe.";
+                     return;
+                }
+
+                document.getElementById('status').innerText = `Found ${voters.length} unique voters. Verifying ELIXIR stakes...`;
+
+                eligibleUsers = [];
+                for (let user of voters) {
+                    const res = await fetch('https://api.hive-engine.com/rpc/contracts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: "2.0", method: "find", params: { contract: "tokens", table: "balances", query: { symbol: "ELIXIR", account: user } }, id: 1
+                        })
+                    });
+                    const data = await res.json();
+                    
+                    // Safely parse the stake, defaulting to 0 if the user has no balance object
+                    const stake = data.result[0] ? parseFloat(data.result[0].stake) : 0;
+                    
+                    if (stake >= 50) {
+                        eligibleUsers.push({ user, stake });
+                    }
+                }
+                
+                document.getElementById('status').innerText = `Found ${eligibleUsers.length} eligible users with 50+ ELIXIR staked.`;
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').innerText = "An error occurred. Check the console for details.";
+            }
         }
 
         function showPayments() {
             const total = parseFloat(document.getElementById('totalHive').value);
-            if (eligibleUsers.length === 0) { alert("No eligible users found."); return; }
+            if (isNaN(total) || total <= 0) {
+                alert("Please enter a valid total HIVE to pay.");
+                return;
+            }
+            if (eligibleUsers.length === 0) { 
+                alert("No eligible users found."); 
+                return; 
+            }
+            
+            // Note: This calculates an EQUAL split. 
+            // If you want a PROPORTIONAL split based on stake size, you will need to divide the user's stake by the total pooled stake.
             const payout = (total / eligibleUsers.length).toFixed(3);
             const tbody = document.getElementById('tbody');
             tbody.innerHTML = "";
+            
             eligibleUsers.forEach(u => {
-                tbody.innerHTML += `<tr><td>${u.user}</td><td>${u.stake}</td><td>${payout}</td>
-                    <td><button onclick="send('${u.user}', '${payout}')">Send</button></td></tr>`;
+                tbody.innerHTML += `<tr>
+                    <td>${u.user}</td>
+                    <td>${u.stake}</td>
+                    <td>${payout}</td>
+                    <td><button onclick="send('${u.user}', '${payout}')">Send</button></td>
+                </tr>`;
             });
         }
 
@@ -71,7 +139,7 @@
             if (window.hive_keychain) {
                 window.hive_keychain.requestTransfer('nectarbytes', user, amount, 'ELIXIR Dividend', 'HIVE', (r) => console.log(r));
             } else {
-                alert("Hive Keychain not found!");
+                alert("Hive Keychain not found! Please install the browser extension.");
             }
         }
     </script>
