@@ -16,6 +16,7 @@
         button:hover { background: #2b6cb0; }
         button.send-btn { background: #38a169; padding: 6px 12px; font-size: 0.9em; }
         button.send-btn:hover { background: #2f855a; }
+        button.send-btn:disabled { background: #e53e3e !important; color: white; cursor: not-allowed; opacity: 1; }
         .error-msg { color: #cc0000; background: #fff0f0; padding: 10px; border-radius: 4px; border: 1px solid #ffcccc; margin-top: 10px; }
         select, input { padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; }
     </style>
@@ -127,7 +128,6 @@
             const endTime = new Date(endStr + 'T23:59:59Z').getTime(); 
             
             try {
-                // Get VESTS to HP conversion factors
                 const props = await client.database.getDynamicGlobalProperties();
                 const totalVestingFund = parseFloat(props.total_vesting_fund_hive);
                 const totalVestingShares = parseFloat(props.total_vesting_shares);
@@ -135,8 +135,6 @@
 
                 statusDiv.innerText = "Pinging account history bounds to prevent node crashes...";
 
-                // FIX 1: Safely ping the node for the absolute latest transaction index (limit of 1)
-                // FIX 2: Use an explicit 'condenser_api' call to bypass strict node routing restrictions
                 const historyCheck = await client.call('condenser_api', 'get_account_history', ['nectarbytes', -1, 1]);
                 
                 if (!historyCheck || historyCheck.length === 0) {
@@ -144,13 +142,11 @@
                     return;
                 }
 
-                // Extract the absolute highest sequence ID from the end of the returned array
                 let startSeq = historyCheck[historyCheck.length - 1][0]; 
                 let totalVests = 0;
                 let processing = true;
 
                 while (processing && startSeq >= 0) {
-                    // FIX 3: Dynamically size the batch. If we are at index 450, we only ask for 450 items, not 1000.
                     const batchSize = Math.min(1000, startSeq);
                     
                     statusDiv.innerText = `Scanning curation rewards... Reading ledger backward from index: ${startSeq}\nCalculated so far: ${(totalVests * vestsToHpRatio).toFixed(3)} HP`;
@@ -160,7 +156,6 @@
 
                     const firstSeq = history[0][0];
 
-                    // Loop backward chronologically through the retrieved block
                     for (let i = history.length - 1; i >= 0; i--) {
                         const item = history[i];
                         const op = item[1].op;
@@ -176,7 +171,6 @@
                         }
                     }
 
-                    // Prevent infinite loops if the node repeats the first sequence boundary
                     if (firstSeq === 0 || startSeq === firstSeq) break;
                     startSeq = firstSeq - 1;
                 }
@@ -185,7 +179,6 @@
                 document.getElementById('poolDisplay').innerText = calculatedHP.toFixed(3);
                 document.getElementById('totalHive').value = calculatedHP.toFixed(3);
 
-                // Step 2: Fetch Hive Engine Token Holders
                 statusDiv.innerText = "Curation calculation complete. Fetching ELIXIR holders from Hive-Engine...";
                 
                 let allHolders = [];
@@ -202,7 +195,6 @@
                     offset += engineBatch;
                 }
 
-                // Filter for users with >= 50 Staked
                 eligibleUsers = allHolders
                     .map(b => ({ user: b.account, stake: parseFloat(b.stake) || 0 }))
                     .filter(b => b.stake >= 50);
@@ -245,15 +237,20 @@
                     <td>${u.stake.toFixed(3)}</td>
                     <td>${sharePct.toFixed(2)}%</td>
                     <td><strong>${payout.toFixed(3)}</strong></td>
-                    <td><button class="send-btn" onclick="send('${u.user}', '${payout.toFixed(3)}')">Send HIVE</button></td>
+                    <td><button class="send-btn" onclick="send(this, '${u.user}', '${payout.toFixed(3)}')">Send HIVE</button></td>
                 </tr>`;
             });
         }
 
-        function send(user, amount) {
+        function send(btnElement, user, amount) {
             if (window.hive_keychain) {
                 window.hive_keychain.requestTransfer('nectarbytes', user, amount, 'ELIXIR Curation Reward Dividend', 'HIVE', (r) => {
                     console.log("Keychain Response:", r);
+                    // Check if the transaction was successfully approved and broadcasted
+                    if (r && r.success) {
+                        btnElement.innerText = "SENT";
+                        btnElement.disabled = true; // Automatically changes color to red and completely locks the button via CSS styles
+                    }
                 });
             } else {
                 alert("Hive Keychain browser extension could not be detected.");
