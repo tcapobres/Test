@@ -15,14 +15,17 @@
     <h2>Hive Dividend Tool (@nectarbytes)</h2>
     
     <div class="controls">
-        <input type="date" id="start"> to <input type="date" id="end">
+        <label for="start">Start Date (UTC):</label>
+        <input type="date" id="start"> 
+        <label for="end">End Date (UTC):</label>
+        <input type="date" id="end">
         <button onclick="runTool()">1. Fetch Voters & Verify Staked ELIXIR</button>
         <br><br>
         <input type="number" id="totalHive" placeholder="Total HIVE to pay" step="0.001">
         <button onclick="showPayments()">2. Generate Payment List</button>
     </div>
 
-    <div id="status"></div>
+    <div id="status" style="font-weight: bold; color: #0066cc; margin-bottom: 15px;"></div>
     <table id="resultTable">
         <thead>
             <tr>
@@ -36,7 +39,8 @@
     </table>
 
     <script>
-        const client = new dhive.Client(['https://api.hive.blog']);
+        // Utilizing a failover array of robust public endpoints
+        const client = new dhive.Client(['https://api.hive.blog', 'https://api.deathwing.me', 'https://hive-api.arcange.eu']);
         let eligibleUsers = [];
 
         async function runTool() {
@@ -44,83 +48,101 @@
             const endStr = document.getElementById('end').value;
             
             if (!startStr || !endStr) {
-                alert("Please select both start and end dates.");
+                alert("Please select both a start and end date.");
                 return;
             }
 
-            const start = new Date(startStr).getTime();
-            // Add 86399999ms to include the entire duration of the selected end date
-            const end = new Date(endStr).getTime() + 86399999; 
+            // Force browser inputs into exact UTC boundaries to align with the Hive blockchain clock
+            const start = new Date(startStr + 'T00:00:00Z').getTime();
+            const end = new Date(endStr + 'T23:59:59Z').getTime(); 
             
-            document.getElementById('status').innerText = "Fetching recent posts to analyze active votes...";
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerText = "Fetching your last 50 blog posts...";
             
             try {
-                // Fetch the last 100 posts by @nectarbytes
-                const posts = await client.database.getDiscussions('blog', { tag: 'nectarbytes', limit: 100 });
+                const posts = await client.database.getDiscussions('blog', { tag: 'nectarbytes', limit: 50 });
                 
+                if (!posts || posts.length === 0) {
+                    statusDiv.innerText = "No blog posts found for @nectarbytes.";
+                    return;
+                }
+
                 let allVoters = new Set();
                 
-                // Extract all incoming votes that happened within the timeframe
-                posts.forEach(post => {
-                    if (post.active_votes) {
-                        post.active_votes.forEach(vote => {
-                            // Append 'Z' to properly parse the UTC time from Hive
-                            const voteTime = new Date(vote.time + 'Z').getTime();
-                            if (voteTime >= start && voteTime <= end) {
-                                allVoters.add(vote.voter);
-                            }
-                        });
+                // Directly query the raw voting data for every single post to bypass truncated summaries
+                for (let i = 0; i < posts.length; i++) {
+                    const post = posts[i];
+                    statusDiv.innerText = `Scanning deep vote data for post ${i + 1}/${posts.length}: "${post.title.substring(0, 25)}..."`;
+                    
+                    try {
+                        const votes = await client.database.call('get_active_votes', [post.author, post.permlink]);
+                        if (votes && Array.isArray(votes)) {
+                            votes.forEach(vote => {
+                                const voteTime = new Date(vote.time + 'Z').getTime();
+                                if (voteTime >= start && voteTime <= end) {
+                                    allVoters.add(vote.voter);
+                                }
+                            });
+                        }
+                    } catch (voteErr) {
+                        console.error(`Skipped permlink data for: ${post.permlink}`, voteErr);
                     }
-                });
+                }
 
                 const voters = [...allVoters];
                 
                 if (voters.length === 0) {
-                     document.getElementById('status').innerText = "No voters found in that timeframe.";
+                     statusDiv.innerText = "No votes were found on your recent posts within that specific date range.";
                      return;
                 }
 
-                document.getElementById('status').innerText = `Found ${voters.length} unique voters. Verifying ELIXIR stakes...`;
+                statusDiv.innerText = `Found ${voters.length} unique voters. Fetching stakes from Hive Engine...`;
 
                 eligibleUsers = [];
-                for (let user of voters) {
-                    const res = await fetch('https://api.hive-engine.com/rpc/contracts', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            jsonrpc: "2.0", method: "find", params: { contract: "tokens", table: "balances", query: { symbol: "ELIXIR", account: user } }, id: 1
-                        })
-                    });
-                    const data = await res.json();
+                for (let i = 0; i < voters.length; i++) {
+                    const user = voters[i];
+                    statusDiv.innerText = `Checking ELIXIR Layer-2 balances (${i + 1}/${voters.length}): @${user}`;
                     
-                    // Safely parse the stake, defaulting to 0 if the user has no balance object
-                    const stake = data.result[0] ? parseFloat(data.result[0].stake) : 0;
-                    
-                    if (stake >= 50) {
-                        eligibleUsers.push({ user, stake });
+                    try {
+                        const res = await fetch('https://api.hive-engine.com/rpc/contracts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                jsonrpc: "2.0", 
+                                method: "find", 
+                                params: { contract: "tokens", table: "balances", query: { symbol: "ELIXIR", account: user } }, 
+                                id: 1
+                            })
+                        });
+                        const data = await res.json();
+                        
+                        const stake = data.result && data.result[0] ? parseFloat(data.result[0].stake) : 0;
+                        if (stake >= 50) {
+                            eligibleUsers.push({ user, stake });
+                        }
+                    } catch (tokenErr) {
+                        console.error(`Hive Engine node timed out for user ${user}:`, tokenErr);
                     }
                 }
                 
-                document.getElementById('status').innerText = `Found ${eligibleUsers.length} eligible users with 50+ ELIXIR staked.`;
+                statusDiv.innerText = `Done! Found ${eligibleUsers.length} users who upvoted you AND have 50+ staked ELIXIR.`;
             } catch (error) {
                 console.error(error);
-                document.getElementById('status').innerText = "An error occurred. Check the console for details.";
+                statusDiv.innerText = "An unexpected error occurred. Open your browser console (F12) to see details.";
             }
         }
 
         function showPayments() {
             const total = parseFloat(document.getElementById('totalHive').value);
             if (isNaN(total) || total <= 0) {
-                alert("Please enter a valid total HIVE to pay.");
+                alert("Please enter a valid total amount of HIVE to distribute.");
                 return;
             }
             if (eligibleUsers.length === 0) { 
-                alert("No eligible users found."); 
+                alert("The eligibility roster is empty. Run step 1 successfully first."); 
                 return; 
             }
             
-            // Note: This calculates an EQUAL split. 
-            // If you want a PROPORTIONAL split based on stake size, you will need to divide the user's stake by the total pooled stake.
             const payout = (total / eligibleUsers.length).toFixed(3);
             const tbody = document.getElementById('tbody');
             tbody.innerHTML = "";
@@ -137,9 +159,11 @@
 
         function send(user, amount) {
             if (window.hive_keychain) {
-                window.hive_keychain.requestTransfer('nectarbytes', user, amount, 'ELIXIR Dividend', 'HIVE', (r) => console.log(r));
+                window.hive_keychain.requestTransfer('nectarbytes', user, amount, 'ELIXIR Dividend', 'HIVE', (r) => {
+                    console.log("Keychain receipt:", r);
+                });
             } else {
-                alert("Hive Keychain not found! Please install the browser extension.");
+                alert("Hive Keychain browser extension not found.");
             }
         }
     </script>
