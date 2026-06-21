@@ -30,7 +30,7 @@
 <body>
 
 <div class="card">
-    <h2>@nectarbytes Reward Scanner</h2>
+    <h2>@nectarbytes Reward Scanner (Prorated)</h2>
     
     <div class="config-grid">
         <div class="input-group">
@@ -75,7 +75,7 @@
             <thead>
                 <tr>
                     <th>Delegator</th>
-                    <th>Weight</th>
+                    <th>Effective Weight</th>
                     <th>HIVE Share</th>
                     <th>ELIXIR to Issue</th>
                 </tr>
@@ -102,6 +102,7 @@
         const price = parseFloat(document.getElementById('priceInput').value);
         const startTs = new Date(document.getElementById('startDate').value).getTime();
         const endTs = new Date(document.getElementById('endDate').value).getTime() + 86400000; 
+        const totalDuration = endTs - startTs;
 
         status.innerHTML = '<div class="loading-bar">Initializing historical ledger analysis...</div>';
         document.getElementById('content').style.display = 'none';
@@ -113,12 +114,14 @@
             const accountInfo = await client.database.getAccounts([target]);
             const targetReceivedVests = parseFloat(accountInfo[0].received_vesting_shares);
 
-            let activeDelegations = new Map();
+            let activeDelegationsForTrack = new Map();
+            let allDelegationOps = [];
             let totalCurationVests = 0;
             let rewardsCount = 0;
             let lastId = -1; 
             let finishedScanningDelegations = false;
 
+            // Step 1: Scan historical ledger backwards to collect curation rewards and all delegation configurations
             while (true) {
                 let currentLimit = 1000;
                 if (lastId !== -1 && lastId < 1000) currentLimit = lastId + 1;
@@ -129,43 +132,121 @@
                 for (const item of reversed) {
                     const op = item[1].op;
                     const timestamp = new Date(item[1].timestamp + 'Z').getTime();
+                    
                     if (timestamp >= startTs && timestamp <= endTs) {
                         if (op[0] === 'curation_reward') {
                             totalCurationVests += parseFloat(op[1].reward);
                             rewardsCount++;
                         }
                     }
-                    if (!finishedScanningDelegations && op[0] === 'delegate_vesting_shares' && op[1].delegatee === target) {
+                    
+                    if (op[0] === 'delegate_vesting_shares' && op[1].delegatee === target) {
                         const delegator = op[1].delegator;
                         const vests = parseFloat(op[1].vesting_shares);
-                        if (vests > 0) activeDelegations.set(delegator, vests); else activeDelegations.delete(delegator);
+                        
+                        // Collect delegation operations for chronological analysis
+                        allDelegationOps.push({ delegator, vests, timestamp });
+                        
+                        // Guard check to ensure we have found the baseline snapshot of current living configurations
+                        if (!finishedScanningDelegations) {
+                            if (!activeDelegationsForTrack.has(delegator)) {
+                                activeDelegationsForTrack.set(delegator, vests);
+                            }
+                        }
                     }
                 }
-                let trackedVestsTotal = 0;
-                activeDelegations.forEach(v => trackedVestsTotal += v);
-                if (Math.abs(trackedVestsTotal - targetReceivedVests) < 1.0) finishedScanningDelegations = true;
+                
+                if (!finishedScanningDelegations) {
+                    let trackedVestsTotal = 0;
+                    activeDelegationsForTrack.forEach(v => trackedVestsTotal += v);
+                    if (Math.abs(trackedVestsTotal - targetReceivedVests) < 1.0) finishedScanningDelegations = true;
+                }
+                
                 const oldestTimestampFetched = new Date(history[0][1].timestamp + 'Z').getTime();
+                // Break only if we have crossed backward past the start window and have mapped all existing delegations
                 if (oldestTimestampFetched < startTs && finishedScanningDelegations) break;
                 if (history[0][0] === 0) break;
                 lastId = history[0][0] - 1; 
                 status.innerHTML = `<div class="loading-bar">Scanning history (Index: ${lastId})...</div>`;
             }
 
-            let totalVestsDelegated = 0;
-            activeDelegations.forEach((vests, user) => { if (user !== 'bulliontools') totalVestsDelegated += vests; });
+            // Step 2: Sort operations chronologically to accurately process time segments
+            allDelegationOps.sort((a, b) => a.timestamp - b.timestamp);
+
+            let currentDelegations = new Map();
+            let userAccumulatedVestMs = new Map();
+            let lastTimestamp = startTs;
+
+            for (const op of allDelegationOps) {
+                const timestamp = op.timestamp;
+
+                // Establish baseline states that happened before the selected window starts
+                if (timestamp < startTs) {
+                    if (op.vests > 0) currentDelegations.set(op.delegator, op.vests); 
+                    else currentDelegations.delete(op.delegator);
+                    continue;
+                }
+
+                // If an operation happens inside or after our window, calculate the weight for the period since lastTimestamp
+                const segmentEnd = Math.min(timestamp, endTs);
+                if (segmentEnd > lastTimestamp) {
+                    const duration = segmentEnd - lastTimestamp;
+                    currentDelegations.forEach((vests, user) => {
+                        const currentAcc = userAccumulatedVestMs.get(user) || 0;
+                        userAccumulatedVestMs.set(user, currentAcc + (vests * duration));
+                    });
+                    lastTimestamp = segmentEnd;
+                }
+
+                if (timestamp > endTs) break;
+
+                // Apply changes to the active state tracker
+                if (op.vests > 0) currentDelegations.set(op.delegator, op.vests); 
+                else currentDelegations.delete(op.delegator);
+            }
+
+            // Handle the remaining time segment up to the exact window closure timestamp
+            if (endTs > lastTimestamp) {
+                const duration = endTs - lastTimestamp;
+                currentDelegations.forEach((vests, user) => {
+                    const currentAcc = userAccumulatedVestMs.get(user) || 0;
+                    userAccumulatedVestMs.set(user, currentAcc + (vests * duration));
+                });
+            }
+
+            // Step 3: Compute Time-Weighted Average Effective Vesting Shares per user
+            let totalEffectiveVests = 0;
+            let effectiveDelegations = new Map();
+
+            userAccumulatedVestMs.forEach((accumulatedVests, user) => {
+                if (user === 'bulliontools') return;
+                const effectiveVests = accumulatedVests / totalDuration;
+                if (effectiveVests > 0) {
+                    effectiveDelegations.set(user, effectiveVests);
+                    totalEffectiveVests += effectiveVests;
+                }
+            });
+
+            // Step 4: Map payouts using the newly derived Time-Weighted Prorated Shares
             const totalHive = totalCurationVests * hpRate;
             const rows = document.getElementById('rows');
             rows.innerHTML = '';
             let totalElixirGlobal = 0;
 
-            activeDelegations.forEach((vests, user) => {
-                if (user === 'bulliontools') return;
-                const share = vests / totalVestsDelegated;
+            effectiveDelegations.forEach((effectiveVests, user) => {
+                const share = totalEffectiveVests > 0 ? (effectiveVests / totalEffectiveVests) : 0;
                 const hiveShare = totalHive * share;
-                // Updated Formula: ELIXIR = HIVE Share * (Price * 0.5)
+                // Formula remains unchanged: ELIXIR = HIVE Share * (Price * 0.5)
                 const elixir = hiveShare * (price * 0.5);
                 totalElixirGlobal += elixir;
-                scanResults.push({ delegator: user, weight: (share * 100).toFixed(2), hiveShare: hiveShare.toFixed(3), elixirToIssue: elixir.toFixed(6) });
+                
+                scanResults.push({ 
+                    delegator: user, 
+                    weight: (share * 100).toFixed(2), 
+                    hiveShare: hiveShare.toFixed(3), 
+                    elixirToIssue: elixir.toFixed(6) 
+                });
+                
                 rows.innerHTML += `<tr><td><strong>@${user}</strong></td><td>${(share * 100).toFixed(2)}%</td><td>${hiveShare.toFixed(3)} HIVE</td><td style="color:#8b5cf6; font-weight:bold;">${elixir.toFixed(6)} ELIXIR</td></tr>`;
             });
 
