@@ -2,81 +2,65 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Debug Hive Checker</title>
+    <title>Hive Power Checker</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
-        button { padding: 15px; background: #28a745; color: white; border: none; width: 100%; font-size: 16px; }
-        #debugLog { background: #f0f0f0; padding: 10px; margin-top: 10px; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
+        button { padding: 15px; background: #007bff; color: white; border: none; width: 100%; font-size: 16px; cursor: pointer; }
+        #errorLog { color: red; font-size: 12px; margin-top: 10px; border: 1px solid red; padding: 5px; display: none; }
     </style>
 </head>
 <body>
-    <h3>Hive Power Debugger</h3>
+    <h3>Hive Power Checker</h3>
     <textarea id="userList" style="width:100%; height:50px;">bulliontool, bulliontools, duo-curator, dewabrat</textarea>
-    <button onclick="checkHP()">Run Debugger</button>
-    <div id="debugLog">Waiting...</div>
+    <button onclick="checkHP()">Fetch Data</button>
+    <div id="errorLog"></div>
+    <div id="results"></div>
 
     <script>
-        function log(msg) {
-            const d = document.getElementById('debugLog');
-            d.innerText += "\n" + new Date().toLocaleTimeString() + ": " + msg;
-            console.log(msg);
+        function logError(msg) {
+            const e = document.getElementById('errorLog');
+            e.style.display = 'block';
+            e.innerHTML += msg + '<br>';
         }
 
         async function checkHP() {
-            const d = document.getElementById('debugLog');
-            d.innerText = "Starting...";
-            
+            const resDiv = document.getElementById('results');
+            resDiv.innerHTML = 'Loading...';
             try {
                 const users = document.getElementById('userList').value.split(',').map(u => u.trim().replace('@', ''));
-                log("Users identified: " + users.join(", "));
 
-                // Change 1: Trying a different API node just in case
-                const node = 'https://api.hive.blog'; 
-                log("Attempting to connect to: " + node);
-
-                const res1 = await fetch(node, {
+                // Fetch Global Props
+                const res1 = await fetch('https://api.hive.blog', {
                     method: 'POST',
                     body: JSON.stringify({jsonrpc:'2.0', method:'condenser_api.get_dynamic_global_properties', params:[], id:1}),
                     headers: {'Content-Type':'application/json'}
                 });
-                
-                log("Response 1 received. Parsing...");
                 const propsData = await res1.json();
-                
-                if (propsData.error) {
-                    log("Error in API response: " + propsData.error.message);
-                    return;
-                }
-                
-                log("Properties retrieved.");
+                if (propsData.error) throw new Error("API Error: " + propsData.error.message);
+
                 const props = propsData.result;
                 const totalVestingShares = parseFloat(props.total_vesting_shares);
                 const totalVestingFund = parseFloat(props.total_vesting_fund_hive);
 
-                log("Fetching accounts...");
-                const res2 = await fetch(node, {
+                // Fetch Accounts
+                const res2 = await fetch('https://api.hive.blog', {
                     method: 'POST',
                     body: JSON.stringify({jsonrpc:'2.0', method:'condenser_api.get_accounts', params:[users], id:1}),
                     headers: {'Content-Type':'application/json'}
                 });
-                
-                log("Accounts response received. Parsing...");
                 const accData = await res2.json();
-                
-                if (!accData.result) {
-                    log("No result data found in response.");
-                    return;
-                }
 
-                d.innerText += "\n\nResults:\n";
+                resDiv.innerHTML = '<ul>';
                 accData.result.forEach(acc => {
                     const hp = (parseFloat(acc.vesting_shares) * totalVestingFund) / totalVestingShares;
-                    d.innerText += `@${acc.name}: ${hp.toLocaleString(undefined, {maximumFractionDigits: 2})} HP\n`;
+                    // The line below was fixed to use valid HTML tags instead of entities
+                    resDiv.innerHTML += `<li>@${acc.name}: ${hp.toLocaleString(undefined, {maximumFractionDigits: 2})} HP</li>`;
                 });
-                log("Done.");
+                resDiv.innerHTML += '</ul>';
 
             } catch (err) {
-                log("CRITICAL ERROR: " + err.toString());
+                logError(err.toString());
+                resDiv.innerHTML = 'Failed to load.';
             }
         }
     </script>
