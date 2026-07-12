@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Hive Power Checker</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+button { padding: 15px; background: #007bff; color: white; border: none; width: 100%; font-size: 16px; }
+#errorLog { color: red; font-size: 12px; margin-top: 10px; border: 1px solid red; padding: 5px; display: none; }
+</style>
+</head>
+<body>
+<h3>Hive Power Checker</h3>
+<textarea id="userList" style="width:100%; height:50px;">bulliontool, bulliontools, duo-curator, dewabrat</textarea>
+<button onclick="checkHP()">Fetch Data</button>
+<div id="errorLog"></div>
+<div id="results"></div>
+
+<script>
+function logError(msg) {
+const e = document.getElementById('errorLog');
+e.style.display = 'block';
+e.innerHTML += msg + '<br>';
+}
+
+async function checkHP() {
+const resDiv = document.getElementById('results');
+resDiv.innerHTML = 'Loading...';
+try {
+const users = document.getElementById('userList').value.split(',').map(u => u.trim().replace('@', ''));
+
+// Fetch Global Props
+const res1 = await fetch('https://api.hive.blog', {
+method: 'POST',
+body: JSON.stringify({jsonrpc:'2.0', method:'condenser_api.get_dynamic_global_properties', params:[], id:1}),
+headers: {'Content-Type':'application/json'}
+});
+const propsData = await res1.json();
+if (propsData.error) throw new Error("API Error: " + propsData.error.message);
+
+const props = propsData.result;
+const totalVestingShares = parseFloat(props.total_vesting_shares);
+const totalVestingFund = parseFloat(props.total_vesting_fund_hive);
+
+// Fetch Accounts
+const res2 = await fetch('https://api.hive.blog', {
+method: 'POST',
+body: JSON.stringify({jsonrpc:'2.0', method:'condenser_api.get_accounts', params:[users], id:1}),
+headers: {'Content-Type':'application/json'}
+});
+const accData = await res2.json();
+
+resDiv.innerHTML = '<ul>';
+accData.result.forEach(acc => {
+const hp = (parseFloat(acc.vesting_shares) * totalVestingFund) / totalVestingShares;
+resDiv.innerHTML += <li&gt;@${acc.name}: ${hp.toLocaleString(undefined, {maximumFractionDigits: 2})} HP&lt;/li>;
+});
+resDiv.innerHTML += '</ul>';
+
+} catch (err) {
+logError(err.toString());
+resDiv.innerHTML = 'Failed to load.';
+}
+}
+</script>
+</body>
+</html>
