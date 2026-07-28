@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELIXIR Sales Compiler - D-Tools RPC</title>
+    <title>ELIXIR Full History Sales Compiler</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -14,21 +14,21 @@
         <!-- Header -->
         <div class="text-center space-y-2">
             <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">ELIXIR Sales Compiler</h1>
-            <p class="text-sm text-slate-400">Powered by the Hive-Engine node backend via <code class="text-emerald-300">he.dtools.dev</code></p>
+            <p class="text-sm text-slate-400">Fetching complete history from token creation via <code class="text-emerald-300">he.dtools.dev</code></p>
         </div>
 
         <!-- Action Button -->
         <div class="flex justify-center">
             <button id="fetchBtn" onclick="compileElixirSales()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold px-6 py-3 rounded-xl transition duration-200 shadow-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                <span id="btnText">Compile ELIXIR Sales</span>
+                <span id="btnText">Compile Full ELIXIR History</span>
             </button>
         </div>
 
         <!-- Status Log Box -->
         <div class="space-y-2">
             <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Status Log</span>
-            <div id="logBox" class="bg-slate-950 border border-slate-800 rounded-xl p-4 h-40 overflow-y-auto font-mono text-xs text-slate-300 space-y-1">
-                <p class="text-slate-500">Click the button above to fetch data from he.dtools.dev...</p>
+            <div id="logBox" class="bg-slate-950 border border-slate-800 rounded-xl p-4 h-44 overflow-y-auto font-mono text-xs text-slate-300 space-y-1">
+                <p class="text-slate-500">Click the button above to pull all trades starting from token inception (offset 0)...</p>
             </div>
         </div>
 
@@ -52,8 +52,10 @@
 
     <!-- Script Logic -->
     <script>
-        // Utilizing the dtools RPC backend endpoint
-        const RPC_URL = "https://herpc.dtools.dev/rpc/contracts";
+        const RPC_NODES = [
+            "https://herpc.dtools.dev/rpc/contracts",
+            "https://api.hive-engine.com/rpc/contracts"
+        ];
         const SYMBOL = "ELIXIR";
 
         function log(message, type = "info") {
@@ -66,17 +68,41 @@
             logBox.scrollTop = logBox.scrollHeight;
         }
 
+        async function getActiveNode() {
+            for (const node of RPC_NODES) {
+                try {
+                    const res = await fetch(node, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            jsonrpc: "2.0",
+                            method: "find",
+                            params: { contract: "market", table: "tradesHistory", limit: 1 },
+                            id: 1
+                        })
+                    });
+                    if (res.ok) return node;
+                } catch (e) {
+                    continue;
+                }
+            }
+            return RPC_NODES[0];
+        }
+
         async function compileElixirSales() {
             const btn = document.getElementById("fetchBtn");
             const btnText = document.getElementById("btnText");
             const resultsCard = document.getElementById("resultsCard");
             
             btn.disabled = true;
-            btnText.textContent = "Fetching Data...";
+            btnText.textContent = "Fetching Inception Data...";
             document.getElementById("logBox").innerHTML = "";
             resultsCard.classList.add("hidden");
             
-            log(`Connecting to ${RPC_URL} for token: ${SYMBOL}`);
+            log(`Locating responsive RPC node...`);
+            const activeNode = await getActiveNode();
+            log(`Connected to node: ${activeNode}`);
+            log(`Starting historical compilation from token creation (offset 0, chronological)...`);
 
             let trades = [];
             let limit = 1000;
@@ -93,12 +119,13 @@
                             table: "tradesHistory",
                             query: { symbol: SYMBOL },
                             limit: limit,
-                            offset: offset
+                            offset: offset,
+                            indexes: [{ index: "_id", descending: false }]
                         },
                         id: 1
                     };
 
-                    const response = await fetch(RPC_URL, {
+                    const response = await fetch(activeNode, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload)
@@ -119,7 +146,7 @@
 
                         trades.push(...batch);
                         offset += limit;
-                        log(`Retrieved ${trades.length.toLocaleString()} trades...`);
+                        log(`Retrieved batch up to offset ${offset}. Total trades so far: ${trades.length.toLocaleString()}`);
 
                         if (batch.length < limit) {
                             fetching = false;
@@ -129,7 +156,6 @@
                         fetching = false;
                     }
 
-                    // Brief delay to prevent rate-limiting
                     await new Promise(r => setTimeout(r, 150));
                 }
 
@@ -149,17 +175,16 @@
                     document.getElementById("resHive").textContent = totalHiveReceived.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
                     
                     resultsCard.classList.remove("hidden");
-                    log("Compilation completed successfully!", "success");
+                    log("Full history compilation completed successfully!", "success");
                 } else {
                     log(`No trade history records found for symbol '${SYMBOL}'.`, "error");
                 }
 
             } catch (err) {
                 log(`Connection Failed: ${err.message}`, "error");
-                log(`Tip: Ensure your browser or app allows external fetch connections to dtools nodes.`, "error");
             } finally {
                 btn.disabled = false;
-                btnText.textContent = "Compile ELIXIR Sales";
+                btnText.textContent = "Compile Full ELIXIR History";
             }
         }
     </script>
