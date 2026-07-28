@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELIXIR Token Sales Compiler (Hive-Engine / Tribaldex)</title>
-    <!-- Tailwind CSS for styling -->
+    <title>ELIXIR Sales Compiler - D-Tools RPC</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
@@ -14,12 +14,12 @@
         <!-- Header -->
         <div class="text-center space-y-2">
             <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">ELIXIR Sales Compiler</h1>
-            <p class="text-sm text-slate-400">Compiles all historical ELIXIR market sales from Hive-Engine & Tribaldex.</p>
+            <p class="text-sm text-slate-400">Powered by the Hive-Engine node backend via <code class="text-emerald-300">he.dtools.dev</code></p>
         </div>
 
         <!-- Action Button -->
         <div class="flex justify-center">
-            <button id="fetchBtn" onclick="startCompilation()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold px-6 py-3 rounded-xl transition duration-200 shadow-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button id="fetchBtn" onclick="compileElixirSales()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold px-6 py-3 rounded-xl transition duration-200 shadow-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
                 <span id="btnText">Compile ELIXIR Sales</span>
             </button>
         </div>
@@ -28,7 +28,7 @@
         <div class="space-y-2">
             <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Status Log</span>
             <div id="logBox" class="bg-slate-950 border border-slate-800 rounded-xl p-4 h-40 overflow-y-auto font-mono text-xs text-slate-300 space-y-1">
-                <p class="text-slate-500">Click the button above to begin fetching trade data...</p>
+                <p class="text-slate-500">Click the button above to fetch data from he.dtools.dev...</p>
             </div>
         </div>
 
@@ -52,9 +52,8 @@
 
     <!-- Script Logic -->
     <script>
-        const TARGET_RPC = "https://api.hive-engine.com/rpc/contracts";
-        // Routed via public CORS proxy to bypass GitHub Pages & Keychain WebView restrictions
-        const RPC_URL = "https://corsproxy.io/?" + encodeURIComponent(TARGET_RPC);
+        // Utilizing the dtools RPC backend endpoint
+        const RPC_URL = "https://herpc.dtools.dev/rpc/contracts";
         const SYMBOL = "ELIXIR";
 
         function log(message, type = "info") {
@@ -67,7 +66,7 @@
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        async function startCompilation() {
+        async function compileElixirSales() {
             const btn = document.getElementById("fetchBtn");
             const btnText = document.getElementById("btnText");
             const resultsCard = document.getElementById("resultsCard");
@@ -77,7 +76,7 @@
             document.getElementById("logBox").innerHTML = "";
             resultsCard.classList.add("hidden");
             
-            log(`Starting data compilation for token: ${SYMBOL}`);
+            log(`Connecting to ${RPC_URL} for token: ${SYMBOL}`);
 
             let trades = [];
             let limit = 1000;
@@ -120,7 +119,7 @@
 
                         trades.push(...batch);
                         offset += limit;
-                        log(`Retrieved ${trades.length.toLocaleString()} trades so far...`);
+                        log(`Retrieved ${trades.length.toLocaleString()} trades...`);
 
                         if (batch.length < limit) {
                             fetching = false;
@@ -130,7 +129,8 @@
                         fetching = false;
                     }
 
-                    await new Promise(r => setTimeout(r, 200));
+                    // Brief delay to prevent rate-limiting
+                    await new Promise(r => setTimeout(r, 150));
                 }
 
                 if (trades.length > 0) {
@@ -151,11 +151,12 @@
                     resultsCard.classList.remove("hidden");
                     log("Compilation completed successfully!", "success");
                 } else {
-                    log(`No trade records returned for symbol '${SYMBOL}'.`, "error");
+                    log(`No trade history records found for symbol '${SYMBOL}'.`, "error");
                 }
 
             } catch (err) {
                 log(`Connection Failed: ${err.message}`, "error");
+                log(`Tip: Ensure your browser or app allows external fetch connections to dtools nodes.`, "error");
             } finally {
                 btn.disabled = false;
                 btnText.textContent = "Compile ELIXIR Sales";
