@@ -132,7 +132,7 @@
 
 <div class="container">
     <h1>📊 ELIXIR Market Tracker</h1>
-    <p style="text-align: center; margin-top: -10px; color: #7f8c8d;">Tracking Hive-Engine / Tribaldex for @nectarbytes[cite: 1]</p>
+    <p style="text-align: center; margin-top: -10px; color: #7f8c8d;">Tracking Hive-Engine / Tribaldex for @nectarbytes</p>
 
     <button id="refreshBtn" onclick="fetchAllMarketData()">Refresh Data</button>
 
@@ -144,14 +144,14 @@
     <div class="card">
         <h2>Active Sell Orders (Open Book)</h2>
         <div id="activeOrdersList">
-            <div class="empty-state">Loading active orders...[cite: 1]</div>
+            <div class="empty-state">Loading active orders...</div>
         </div>
     </div>
 
     <div class="card">
         <h2>Recent Completed Trades (History)</h2>
         <div id="completedTradesList">
-            <div class="empty-state">Loading trade history...[cite: 1]</div>
+            <div class="empty-state">Loading trade history...</div>
         </div>
     </div>
 </div>
@@ -194,9 +194,9 @@
 
         btn.disabled = true;
         btn.textContent = "Fetching All-Time Data...";
-        activeContainer.innerHTML = '<div class="empty-state">Fetching active orders...[cite: 1]</div>';
-        historyContainer.innerHTML = '<div class="empty-state">Fetching trade history...[cite: 1]</div>';
-        totalSoldSumEl.textContent = "Scanning all blocks...";
+        activeContainer.innerHTML = '<div class="empty-state">Fetching active orders...</div>';
+        historyContainer.innerHTML = '<div class="empty-state">Fetching trade history...</div>';
+        totalSoldSumEl.textContent = "Scanning blocks...";
 
         try {
             // 1. Fetch Active Sell Orders
@@ -204,39 +204,20 @@
             const activeData = await activeRes.json();
             const activeOrders = activeData.result || [];
 
-            // 2. Query history using account index filter directly on tradesHistory table
-            // Hive-Engine stores trades matching seller/buyer or account index. 
-            // Querying with account directly prevents hitting 1000-item limits prematurely.
+            // 2. Fetch trade history safely using indexed symbol query and filtering client-side
             let allSales = [];
             let offset = 0;
             let fetchMore = true;
             const limit = 1000;
 
             while (fetchMore) {
-                const historyRes = await fetch(API_URL, createFetchPayload("tradesHistory", { symbol: SYMBOL, seller: ACCOUNT }, limit, offset));
+                const historyRes = await fetch(API_URL, createFetchPayload("tradesHistory", { symbol: SYMBOL }, limit, offset));
                 const historyData = await historyRes.json();
                 const batch = historyData.result || [];
 
-                allSales = allSales.concat(batch);
-
-                if (batch.length < limit) {
-                    fetchMore = false;
-                } else {
-                    offset += limit;
-                }
-            }
-
-            // Also check alternate schema field variant just in case (e.g. account field instead of seller)
-            offset = 0;
-            fetchMore = true;
-            while (fetchMore) {
-                const historyRes = await fetch(API_URL, createFetchPayload("tradesHistory", { symbol: SYMBOL, account: ACCOUNT }, limit, offset));
-                const historyData = await historyRes.json();
-                const batch = historyData.result || [];
-
-                // Filter out duplicates if any overlap
-                const newTrades = batch.filter(t => !allSales.some(existing => existing._id === t._id));
-                allSales = allSales.concat(newTrades);
+                // Filter client-side for sales belonging strictly to our target account
+                const userSales = batch.filter(trade => trade.seller === ACCOUNT);
+                allSales = allSales.concat(userSales);
 
                 if (batch.length < limit) {
                     fetchMore = false;
@@ -261,7 +242,7 @@
                     </div>
                 `).join('');
             } else {
-                activeContainer.innerHTML = `<div class="empty-state">No active sell orders found for @${ACCOUNT}.[cite: 1]</div>`;
+                activeContainer.innerHTML = `<div class="empty-state">No active sell orders found for @${ACCOUNT}.</div>`;
             }
 
             // Render Trade History (sort descending, show top 5 most recent)
@@ -279,13 +260,13 @@
                     </div>
                 `).join('');
             } else {
-                historyContainer.innerHTML = `<div class="empty-state">No completed sales found for @${ACCOUNT} since token creation.[cite: 1]</div>`;
+                historyContainer.innerHTML = `<div class="empty-state">No completed sales found for @${ACCOUNT} since token creation.</div>`;
             }
 
         } catch (error) {
             console.error("API Error:", error);
-            activeContainer.innerHTML = `<div class="error-state">Failed to fetch data. Check console.[cite: 1]</div>`;
-            historyContainer.innerHTML = `<div class="error-state">Failed to fetch data. Check console.[cite: 1]</div>`;
+            activeContainer.innerHTML = `<div class="error-state">Failed to fetch data. Check console.</div>`;
+            historyContainer.innerHTML = `<div class="error-state">Failed to fetch data. Check console.</div>`;
             totalSoldSumEl.textContent = "Error";
         } finally {
             btn.disabled = false;
