@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@nectarbytes - ELIXIR Sales Compiler</title>
+    <title>@nectarbytes - Complete ELIXIR Sales Compiler</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -13,22 +13,22 @@
         
         <!-- Header -->
         <div class="text-center space-y-2">
-            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">@nectarbytes ELIXIR Sales</h1>
-            <p class="text-sm text-slate-400">Compiling account-specific trade history from Hive-Engine nodes</p>
+            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">@nectarbytes ELIXIR Sales (Full Ledger)</h1>
+            <p class="text-sm text-slate-400">Pulling complete global ELIXIR trade ledger and filtering client-side for 100% accuracy</p>
         </div>
 
         <!-- Action Button -->
         <div class="flex justify-center">
-            <button id="fetchBtn" onclick="compileAccountSales()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold px-6 py-3 rounded-xl transition duration-200 shadow-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                <span id="btnText">Compile @nectarbytes Sales</span>
+            <button id="fetchBtn" onclick="compileCompleteSales()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold px-6 py-3 rounded-xl transition duration-200 shadow-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span id="btnText">Compile Complete Sales History</span>
             </button>
         </div>
 
         <!-- Status Log Box -->
         <div class="space-y-2">
             <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Status Log</span>
-            <div id="logBox" class="bg-slate-950 border border-slate-800 rounded-xl p-4 h-44 overflow-y-auto font-mono text-xs text-slate-300 space-y-1">
-                <p class="text-slate-500">Click the button above to pull trade records for @nectarbytes...</p>
+            <div id="logBox" class="bg-slate-950 border border-slate-800 rounded-xl p-4 h-48 overflow-y-auto font-mono text-xs text-slate-300 space-y-1">
+                <p class="text-slate-500">Click the button above to download and parse the entire ELIXIR trade history...</p>
             </div>
         </div>
 
@@ -39,7 +39,7 @@
                 <p id="resTrades" class="text-xl font-bold text-slate-100 mt-1">0</p>
             </div>
             <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl text-center">
-                <p class="text-xs text-slate-400 uppercase font-semibold">ELIXIR Sold</p>
+                <p class="text-xs text-slate-400 uppercase font-semibold">Total ELIXIR Sold</p>
                 <p id="resTokens" class="text-xl font-bold text-emerald-400 mt-1">0.0000</p>
             </div>
             <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl text-center">
@@ -90,7 +90,7 @@
             throw new Error("All Hive-Engine RPC nodes are currently unreachable.");
         }
 
-        async function compileAccountSales() {
+        async function compileCompleteSales() {
             const btn = document.getElementById("fetchBtn");
             const btnText = document.getElementById("btnText");
             const resultsCard = document.getElementById("resultsCard");
@@ -104,9 +104,9 @@
                 log(`Locating active Hive-Engine RPC node...`);
                 const activeNode = await getActiveNode();
                 log(`Connected successfully to: ${activeNode}`);
-                log(`Fetching sales history for account '${ACCOUNT}' and symbol '${SYMBOL}'...`);
+                log(`Downloading entire global trade history for symbol '${SYMBOL}' across all pages...`);
 
-                let trades = [];
+                let allTrades = [];
                 let limit = 1000;
                 let offset = 0;
                 let fetching = true;
@@ -118,10 +118,7 @@
                         params: {
                             contract: "market",
                             table: "tradesHistory",
-                            query: { 
-                                symbol: SYMBOL, 
-                                seller: ACCOUNT 
-                            },
+                            query: { symbol: SYMBOL },
                             limit: limit,
                             offset: offset,
                             indexes: [{ index: "_id", descending: false }]
@@ -148,9 +145,9 @@
                             break;
                         }
 
-                        trades.push(...batch);
+                        allTrades.push(...batch);
                         offset += limit;
-                        log(`Retrieved batch up to offset ${offset}. Total matching trades: ${trades.length.toLocaleString()}`);
+                        log(`Fetched batch up to offset ${offset}. Total global trades loaded: ${allTrades.length.toLocaleString()}`);
 
                         if (batch.length < limit) {
                             fetching = false;
@@ -160,26 +157,33 @@
                         fetching = false;
                     }
 
-                    await new Promise(r => setTimeout(r, 150));
+                    await new Promise(r => setTimeout(r, 100));
                 }
 
-                if (trades.length > 0) {
+                log(`Global download complete. Total records scanned: ${allTrades.length.toLocaleString()}`);
+                log(`Filtering records for seller: '${ACCOUNT}' (case-insensitive)...`);
+
+                const userTrades = allTrades.filter(trade => 
+                    trade.seller && trade.seller.toLowerCase() === ACCOUNT.toLowerCase()
+                );
+
+                if (userTrades.length > 0) {
                     let totalTokensSold = 0.0;
                     let totalHiveReceived = 0.0;
 
-                    for (const trade of trades) {
+                    for (const trade of userTrades) {
                         const qty = parseFloat(trade.quantity || 0);
                         const price = parseFloat(trade.price || 0);
                         totalTokensSold += qty;
                         totalHiveReceived += (qty * price);
                     }
 
-                    document.getElementById("resTrades").textContent = trades.length.toLocaleString();
+                    document.getElementById("resTrades").textContent = userTrades.length.toLocaleString();
                     document.getElementById("resTokens").textContent = totalTokensSold.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
                     document.getElementById("resHive").textContent = totalHiveReceived.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
                     
                     resultsCard.classList.remove("hidden");
-                    log("Account sales compilation completed successfully!", "success");
+                    log(`Successfully compiled ${userTrades.length} sales records for @${ACCOUNT}!`, "success");
                 } else {
                     log(`No sales history found where seller is '${ACCOUNT}' for symbol '${SYMBOL}'.`, "error");
                 }
@@ -188,7 +192,7 @@
                 log(`Connection Failed: ${err.message}`, "error");
             } finally {
                 btn.disabled = false;
-                btnText.textContent = "Compile @nectarbytes Sales";
+                btnText.textContent = "Compile Complete Sales History";
             }
         }
     </script>
