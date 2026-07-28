@@ -14,7 +14,7 @@
         <!-- Header -->
         <div class="text-center space-y-2">
             <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">ELIXIR Sales Compiler</h1>
-            <p class="text-sm text-slate-400">Fetching complete history from token creation via <code class="text-emerald-300">he.dtools.dev</code></p>
+            <p class="text-sm text-slate-400">Compiling complete history from token creation via official Hive-Engine nodes</p>
         </div>
 
         <!-- Action Button -->
@@ -28,7 +28,7 @@
         <div class="space-y-2">
             <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Status Log</span>
             <div id="logBox" class="bg-slate-950 border border-slate-800 rounded-xl p-4 h-44 overflow-y-auto font-mono text-xs text-slate-300 space-y-1">
-                <p class="text-slate-500">Click the button above to pull all trades starting from token inception (offset 0)...</p>
+                <p class="text-slate-500">Click the button above to pull all trades starting from inception...</p>
             </div>
         </div>
 
@@ -52,9 +52,10 @@
 
     <!-- Script Logic -->
     <script>
+        // Official Hive-Engine mainnet RPC endpoints
         const RPC_NODES = [
-            "https://herpc.dtools.dev/rpc/contracts",
-            "https://api.hive-engine.com/rpc/contracts"
+            "https://api.hive-engine.com/rpc/contracts",
+            "https://api2.hive-engine.com/rpc/contracts"
         ];
         const SYMBOL = "ELIXIR";
 
@@ -86,7 +87,7 @@
                     continue;
                 }
             }
-            return RPC_NODES[0];
+            throw new Error("All Hive-Engine RPC nodes are currently unreachable.");
         }
 
         async function compileElixirSales() {
@@ -95,21 +96,21 @@
             const resultsCard = document.getElementById("resultsCard");
             
             btn.disabled = true;
-            btnText.textContent = "Fetching Inception Data...";
+            btnText.textContent = "Connecting...";
             document.getElementById("logBox").innerHTML = "";
             resultsCard.classList.add("hidden");
             
-            log(`Locating responsive RPC node...`);
-            const activeNode = await getActiveNode();
-            log(`Connected to node: ${activeNode}`);
-            log(`Starting historical compilation from token creation (offset 0, chronological)...`);
-
-            let trades = [];
-            let limit = 1000;
-            let offset = 0;
-            let fetching = true;
-
             try {
+                log(`Locating active Hive-Engine RPC node...`);
+                const activeNode = await getActiveNode();
+                log(`Connected successfully to: ${activeNode}`);
+                log(`Starting historical compilation from inception (offset 0, chronological)...`);
+
+                let trades = [];
+                let limit = 1000;
+                let offset = 0;
+                let fetching = true;
+
                 while (fetching) {
                     const payload = {
                         jsonrpc: "2.0",
@@ -146,7 +147,7 @@
 
                         trades.push(...batch);
                         offset += limit;
-                        log(`Retrieved batch up to offset ${offset}. Total trades so far: ${trades.length.toLocaleString()}`);
+                        log(`Retrieved batch up to offset ${offset}. Total trades: ${trades.length.toLocaleString()}`);
 
                         if (batch.length < limit) {
                             fetching = false;
