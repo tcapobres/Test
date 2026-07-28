@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELIXIR Full History Sales Compiler</title>
+    <title>@nectarbytes - ELIXIR Sales Compiler</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -13,14 +13,14 @@
         
         <!-- Header -->
         <div class="text-center space-y-2">
-            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">ELIXIR Sales Compiler</h1>
-            <p class="text-sm text-slate-400">Compiling complete history from token creation via official Hive-Engine nodes</p>
+            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">@nectarbytes ELIXIR Sales</h1>
+            <p class="text-sm text-slate-400">Compiling account-specific trade history from Hive-Engine nodes</p>
         </div>
 
         <!-- Action Button -->
         <div class="flex justify-center">
-            <button id="fetchBtn" onclick="compileElixirSales()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold px-6 py-3 rounded-xl transition duration-200 shadow-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                <span id="btnText">Compile Full ELIXIR History</span>
+            <button id="fetchBtn" onclick="compileAccountSales()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold px-6 py-3 rounded-xl transition duration-200 shadow-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span id="btnText">Compile @nectarbytes Sales</span>
             </button>
         </div>
 
@@ -28,14 +28,14 @@
         <div class="space-y-2">
             <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Status Log</span>
             <div id="logBox" class="bg-slate-950 border border-slate-800 rounded-xl p-4 h-44 overflow-y-auto font-mono text-xs text-slate-300 space-y-1">
-                <p class="text-slate-500">Click the button above to pull all trades starting from inception...</p>
+                <p class="text-slate-500">Click the button above to pull trade records for @nectarbytes...</p>
             </div>
         </div>
 
         <!-- Results Display -->
         <div id="resultsCard" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
             <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl text-center">
-                <p class="text-xs text-slate-400 uppercase font-semibold">Total Trades</p>
+                <p class="text-xs text-slate-400 uppercase font-semibold">Total Sell Orders</p>
                 <p id="resTrades" class="text-xl font-bold text-slate-100 mt-1">0</p>
             </div>
             <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl text-center">
@@ -52,12 +52,12 @@
 
     <!-- Script Logic -->
     <script>
-        // Official Hive-Engine mainnet RPC endpoints
         const RPC_NODES = [
             "https://api.hive-engine.com/rpc/contracts",
             "https://api2.hive-engine.com/rpc/contracts"
         ];
         const SYMBOL = "ELIXIR";
+        const ACCOUNT = "nectarbytes";
 
         function log(message, type = "info") {
             const logBox = document.getElementById("logBox");
@@ -90,7 +90,7 @@
             throw new Error("All Hive-Engine RPC nodes are currently unreachable.");
         }
 
-        async function compileElixirSales() {
+        async function compileAccountSales() {
             const btn = document.getElementById("fetchBtn");
             const btnText = document.getElementById("btnText");
             const resultsCard = document.getElementById("resultsCard");
@@ -104,7 +104,7 @@
                 log(`Locating active Hive-Engine RPC node...`);
                 const activeNode = await getActiveNode();
                 log(`Connected successfully to: ${activeNode}`);
-                log(`Starting historical compilation from inception (offset 0, chronological)...`);
+                log(`Fetching sales history for account '${ACCOUNT}' and symbol '${SYMBOL}'...`);
 
                 let trades = [];
                 let limit = 1000;
@@ -118,7 +118,10 @@
                         params: {
                             contract: "market",
                             table: "tradesHistory",
-                            query: { symbol: SYMBOL },
+                            query: { 
+                                symbol: SYMBOL, 
+                                seller: ACCOUNT 
+                            },
                             limit: limit,
                             offset: offset,
                             indexes: [{ index: "_id", descending: false }]
@@ -147,7 +150,7 @@
 
                         trades.push(...batch);
                         offset += limit;
-                        log(`Retrieved batch up to offset ${offset}. Total trades: ${trades.length.toLocaleString()}`);
+                        log(`Retrieved batch up to offset ${offset}. Total matching trades: ${trades.length.toLocaleString()}`);
 
                         if (batch.length < limit) {
                             fetching = false;
@@ -176,16 +179,16 @@
                     document.getElementById("resHive").textContent = totalHiveReceived.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
                     
                     resultsCard.classList.remove("hidden");
-                    log("Full history compilation completed successfully!", "success");
+                    log("Account sales compilation completed successfully!", "success");
                 } else {
-                    log(`No trade history records found for symbol '${SYMBOL}'.`, "error");
+                    log(`No sales history found where seller is '${ACCOUNT}' for symbol '${SYMBOL}'.`, "error");
                 }
 
             } catch (err) {
                 log(`Connection Failed: ${err.message}`, "error");
             } finally {
                 btn.disabled = false;
-                btnText.textContent = "Compile Full ELIXIR History";
+                btnText.textContent = "Compile @nectarbytes Sales";
             }
         }
     </script>
