@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELIXIR Token Sales Compiler (Hive-Engine / Tribaldex)</title>
+<!-- Tailwind CSS for styling -->
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+<div class="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 md:p-8 space-y-6">
+
+<!-- Header -->
+<div class="text-center space-y-2">
+<h1 class="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">ELIXIR Sales Compiler</h1>
+<p class="text-sm text-slate-400">Pulls and compiles all historical market trades from Hive-Engine & Tribaldex.</p>
+</div>
+
+<!-- Action Button -->
+<div class="flex justify-center">
+<button id="fetchBtn" onclick="startCompilation()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold px-6 py-3 rounded-xl transition duration-200 shadow-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+<span id="btnText">Compile ELIXIR Sales</span>
+</button>
+</div>
+
+<!-- Status Log Box -->
+<div class="space-y-2">
+<span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Status Log</span>
+<div id="logBox" class="bg-slate-950 border border-slate-800 rounded-xl p-4 h-36 overflow-y-auto font-mono text-xs text-slate-300 space-y-1">
+<p class="text-slate-500">Click the button above to begin fetching trade data...</p>
+</div>
+</div>
+
+<!-- Results Display -->
+<div id="resultsCard" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
+<div class="bg-slate-950 border border-slate-800 p-4 rounded-xl text-center">
+<p class="text-xs text-slate-400 uppercase font-semibold">Total Trades</p>
+<p id="resTrades" class="text-xl font-bold text-slate-100 mt-1">0</p>
+</div>
+<div class="bg-slate-950 border border-slate-800 p-4 rounded-xl text-center">
+<p class="text-xs text-slate-400 uppercase font-semibold">ELIXIR Sold</p>
+<p id="resTokens" class="text-xl font-bold text-emerald-400 mt-1">0.0000</p>
+</div>
+<div class="bg-slate-950 border border-slate-800 p-4 rounded-xl text-center">
+<p class="text-xs text-slate-400 uppercase font-semibold">SWAP.HIVE Generated</p>
+<p id="resHive" class="text-xl font-bold text-amber-400 mt-1">0.0000</p>
+</div>
+</div>
+
+</div>
+
+<!-- Script Logic -->
+<script>
+const RPC_URL = "https://api.hive-engine.com/rpc/contracts";
+const SYMBOL = "ELIXIR";
+
+function log(message, type = "info") {
+const logBox = document.getElementById("logBox");
+const p = document.createElement("p");
+p.textContent = [${new Date().toLocaleTimeString()}] ${message};
+if (type === "error") p.className = "text-red-400";
+if (type === "success") p.className = "text-emerald-400 font-semibold";
+logBox.appendChild(p);
+logBox.scrollTop = logBox.scrollHeight;
+}
+
+async function startCompilation() {
+const btn = document.getElementById("fetchBtn");
+const btnText = document.getElementById("btnText");
+const resultsCard = document.getElementById("resultsCard");
+
+btn.disabled = true;
+btnText.textContent = "Fetching Data...";
+document.getElementById("logBox").innerHTML = ""; // Fixed element selection
+resultsCard.classList.add("hidden");
+
+log(Starting data compilation for token: ${SYMBOL}`);
+
+let trades = [];
+let limit = 1000;
+let offset = 0;
+let fetching = true;
+
+try {
+while (fetching) {
+const payload = {
+jsonrpc: "2.0",
+method: "find",
+params: {
+contract: "market",
+table: "tradesHistory",
+query: { symbol: SYMBOL },
+limit: limit,
+offset: offset
+},
+id: 1
+};
+
+const response = await fetch(RPC_URL, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(payload)
+});
+
+const data = await response.json();
+
+if (data.result) {
+const batch = data.result;
+if (batch.length === 0) {
+fetching = false;
+break;
+}
+
+trades.push(...batch);
+offset += limit;
+log(Retrieved${trades.length} trades so far...`);
+
+if (batch.length < limit) {
+fetching = false;
+}
+} else {
+log(Error from RPC: ${JSON.stringify(data)}`, "error");
+fetching = false;
+}
+
+// Brief pause to prevent rate limiting
+await new Promise(r => setTimeout(r, 200));
+}
+
+if (trades.length > 0) {
+let totalTokensSold = 0.0;
+let totalHiveReceived = 0.0;
+
+for (const trade of trades) {
+const qty = parseFloat(trade.quantity || 0);
+const price = parseFloat(trade.price || 0);
+totalTokensSold += qty;
+totalHiveReceived += (qty * price);
+}
+
+// Populate UI
+document.getElementById("resTrades").textContent = trades.length.toLocaleString();
+document.getElementById("resTokens").textContent = totalTokensSold.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+document.getElementById("resHive").textContent = totalHiveReceived.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+
+resultsCard.classList.remove("hidden");
+log("Compilation complete successfully!", "success");
+} else {
+log("No trade history found for this token symbol.", "error");
+}
+
+} catch (err) {
+log(Network error:${err.message}`, "error");
+} finally {
+btn.disabled = false;
+btnText.textContent = "Compile ELIXIR Sales";
+}
+}
+</script>
+</body>
+</html>
