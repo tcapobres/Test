@@ -206,12 +206,16 @@
                 const toUser = String(record.to || record.receiver || '').toLowerCase();
                 const qty = parseFloat(record.quantity || record.amount || 0);
                 const timestamp = record.timestamp;
-                const memo = record.memo || '';
+                const memo = String(record.memo || '').toLowerCase();
                 
                 const isOutbound = fromUser === SELLER_ACCOUNT.toLowerCase();
                 
-                if (isTransferType && isOutbound && toUser && toUser !== SELLER_ACCOUNT.toLowerCase() && qty > 0) {
-                    const key = `DELEG_${toUser}_${qty.toFixed(4)}_${timestamp}`;
+                // Strict check: Only count transfers explicitly flagged as rewards/delegations or airdrops via memo keywords, 
+                // avoiding general market fulfillment or internal movements miscategorized as rewards.
+                const isExplicitRewardMemo = memo.includes('reward') || memo.includes('delegation') || memo.includes('airdrop') || memo.includes('bonus') || memo.includes('payout');
+
+                if (isTransferType && isOutbound && toUser && toUser !== SELLER_ACCOUNT.toLowerCase() && qty > 0 && isExplicitRewardMemo) {
+                    const key = `REWARD_${toUser}_${qty.toFixed(4)}_${timestamp}`;
                     ledgerMap.set(key, {
                       id: key,
                       date: new Date(timestamp * 1000).toLocaleString(),
@@ -223,7 +227,7 @@
                       price: 0,
                       totalHive: 0,
                       source: 'Blockchain Transfer',
-                      memo: memo ? `Transfer: ${memo}` : 'Delegation Payment (No Memo)'
+                      memo: record.memo ? `Transfer: ${record.memo}` : 'Delegation Payment'
                     });
                 }
                 
@@ -259,6 +263,7 @@
               const tracedByAccount = {};
               ledgerMap.forEach(trade => {
                 if (!tracedByAccount[trade.buyer]) tracedByAccount[trade.buyer] = 0;
+                // Only account for volume that represents token acquisition (purchases or rewards)
                 tracedByAccount[trade.buyer] += trade.quantity;
               });
 
