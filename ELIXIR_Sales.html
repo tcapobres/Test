@@ -125,7 +125,8 @@
             if (data.length < 1000) hasMore = false;
             else offset += 1000;
             
-            if (allRecords.length >= 20000) break; 
+            // Expanded safety cap to 30,000 to catch older delegation payments
+            if (allRecords.length >= 30000) break; 
           }
         } catch (err) {
           console.warn("History node timeout, proceeding with RPC and Rich List reconciliation.");
