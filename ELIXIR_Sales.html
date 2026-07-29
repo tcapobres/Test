@@ -14,7 +14,7 @@
         <div class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-slate-700 pb-6 gap-4">
             <div>
                 <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-emerald-400">Hive-Engine Deep Tranche Auditor</h1>
-                <p class="text-slate-400 text-sm mt-1">Multi-node failover history pagination with Keychain support.</p>
+                <p class="text-slate-400 text-sm mt-1">Multi-node failover history pagination with precise quantity mapping.</p>
             </div>
             <div>
                 <button id="keychainBtn" onclick="connectKeychain()" class="bg-rose-600 hover:bg-rose-500 text-white font-medium text-sm py-2 px-4 rounded-xl transition duration-200 flex items-center gap-2 shadow-md">
@@ -100,7 +100,7 @@
         </div>
     </div>
 
-    <!-- Script Logic with Multi-Node Failover -->
+    <!-- Script Logic with Multi-Node Failover & Precise Payload Parsing -->
     <script>
         let connectedAccount = null;
 
@@ -127,7 +127,6 @@
         }
 
         async function fetchWithFailover(urlParams) {
-            // List of official historical API fallback mirrors to prevent single-point failures
             const endpoints = [
                 `https://history.hive-engine.com/accountHistory?${urlParams}`,
                 `https://api.hive-engine.com/accounts/history?${urlParams}`
@@ -218,7 +217,8 @@
             tbody.innerHTML = '';
 
             const relevantTxs = transactions.filter(tx => {
-                const matchSymbol = !symbol || tx.symbol === symbol || (tx.contractPayload && tx.contractPayload.symbol === symbol);
+                const txSymbol = tx.symbol || (tx.contractPayload && tx.contractPayload.symbol);
+                const matchSymbol = !symbol || (txSymbol && txSymbol.toUpperCase() === symbol);
                 return matchSymbol;
             });
 
@@ -226,26 +226,37 @@
                 tbody.innerHTML = `<tr><td colspan="5" class="py-6 px-4 text-center text-slate-500">No transactions found for @${accountName} with symbol ${symbol}.</td></tr>`;
             } else {
                 relevantTxs.forEach(tx => {
-                    const qty = parseFloat(tx.quantity) || 0;
-                    const operation = tx.operation || tx.action || tx.contractAction || 'transfer';
-                    const memo = tx.memo || tx.txid || '-';
+                    // Extract quantity from either top-level or contractPayload securely
+                    const qty = parseFloat(
+                        tx.quantity || 
+                        (tx.contractPayload && tx.contractPayload.quantity) || 
+                        0
+                    );
+
+                    const operation = tx.operation || tx.contractAction || tx.action || tx.contractName || 'transfer';
+                    const memo = tx.memo || (tx.contractPayload && tx.contractPayload.memo) || tx.txid || '-';
                     const time = tx.timestamp ? new Date(tx.timestamp).toLocaleString() : 'N/A';
                     
+                    let fromAcc = tx.from || (tx.contractPayload && tx.contractPayload.from) || '';
+                    let toAcc = tx.to || (tx.contractPayload && tx.contractPayload.to) || '';
+
                     let details = `-`;
-                    if (tx.from && tx.to) {
-                        details = `@${tx.from} &rarr; @${tx.to}`;
-                    } else if (tx.from) {
-                        details = `From @${tx.from}`;
-                    } else if (tx.to) {
-                        details = `To @${tx.to}`;
+                    if (fromAcc && toAcc) {
+                        details = `@${fromAcc} &rarr; @${toAcc}`;
+                    } else if (fromAcc) {
+                        details = `From @${fromAcc}`;
+                    } else if (toAcc) {
+                        details = `To @${toAcc}`;
                     }
 
-                    const isSale = operation.toLowerCase().includes('sell') || 
-                                   (tx.memo && tx.memo.toLowerCase().includes('sold')) ||
-                                   (tx.description && tx.description.toLowerCase().includes('sold')) ||
-                                   (tx.to && tx.to.toLowerCase() !== accountName && operation === 'transfer' && tx.from && tx.from.toLowerCase() === accountName);
+                    // Check if transaction represents a sale or outbound transfer from user
+                    const isMarketSell = (tx.contractName === 'market' && (tx.contractAction === 'marketSell' || tx.contractAction === 'sell')) ||
+                                         operation.toLowerCase().includes('sell');
+                    const isOutboundTransfer = (operation.toLowerCase() === 'transfer' && fromAcc.toLowerCase() === accountName);
+                    const hasSoldText = (memo && memo.toLowerCase().includes('sold')) ||
+                                        (tx.description && tx.description.toLowerCase().includes('sold'));
 
-                    if (isSale && tx.from && tx.from.toLowerCase() === accountName) {
+                    if ((isMarketSell || isOutboundTransfer || hasSoldText) && fromAcc.toLowerCase() === accountName) {
                         totalSold += qty;
                     }
 
