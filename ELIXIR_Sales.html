@@ -3,127 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hive-Engine Account Explorer & History</title>
+    <title>Hive-Engine Complete Tranche & Sales Auditor</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl font-bold tracking-tight text-indigo-400 mb-2">Hive-Engine Account Explorer</h1>
-            <p class="text-slate-400">View complete transaction history, market trades, and transfers for any Hive-Engine account.</p>
-        </header>
-
-        <!-- Search Form -->
-        <div class="bg-slate-800 rounded-xl p-6 shadow-lg mb-8 border border-slate-700">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1">Account Name</label>
-                    <input type="text" id="accountInput" placeholder="e.g. nectarbytes" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 focus:outline-none focus:border-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1">Token Symbol (Optional)</label>
-                    <input type="text" id="symbolInput" placeholder="e.g. ELIXIR" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 focus:outline-none focus:border-indigo-500">
-                </div>
-                <div class="flex items-end">
-                    <button onclick="fetchHistory()" id="searchBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-magnifying-glass"></i> Fetch History
-                    </button>
-                </div>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col items-center py-10 px-4">
+    <div class="max-w-5xl w-full bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
+        
+        <!-- Header & Keychain Status -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-slate-700 pb-6 gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-emerald-400">Hive-Engine Deep Tranche Auditor</h1>
+                <p class="text-slate-400 text-sm mt-1">Full historical pagination across Hive-Engine API with Keychain support.</p>
+            </div>
+            <div>
+                <button id="keychainBtn" onclick="connectKeychain()" class="bg-red-600 hover:bg-red-500 text-white font-medium text-sm py-2 px-4 rounded-xl transition duration-200 flex items-center gap-2 shadow-md">
+                    <i class="fa-solid fa-key"></i> <span id="keychainBtnText">Connect Keychain</span>
+                </button>
             </div>
         </div>
 
-        <!-- Status / Loading -->
-        <div id="statusMessage" class="hidden text-center py-6 text-slate-400">
-            <i class="fa-solid fa-spinner fa-spin text-indigo-400 text-2xl mb-2"></i>
-            <p>Fetching transaction history from Hive-Engine...</p>
+        <!-- Input Parameters Form -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Hive Username</label>
+                <input type="text" id="accountName" value="nectarbytes" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Token Symbol</label>
+                <input type="text" id="tokenSymbol" value="ELIXIR" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Initial Tranche Size</label>
+                <input type="number" id="trancheSize" value="20000" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
         </div>
 
-        <!-- Results Section -->
-        <div id="resultsContainer" class="hidden">
-            <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
-                    <h2 class="font-semibold text-lg text-slate-200">Transaction History</h2>
-                    <span id="txCount" class="text-xs bg-indigo-900 text-indigo-300 px-2.5 py-1 rounded-full font-medium">0 transactions</span>
+        <!-- Action Button -->
+        <div class="mb-8">
+            <button id="runBtn" onclick="runCompleteAudit()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 px-6 rounded-lg transition duration-200 shadow-lg flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-database"></i>
+                <span>Fetch Complete Historical Chain & Audit</span>
+            </button>
+        </div>
+
+        <!-- Loading State & Real-time Progress -->
+        <div id="loadingBox" class="hidden text-center py-8 bg-slate-900/60 rounded-xl border border-slate-700 mb-6">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent"></div>
+            <p id="statusText" class="text-slate-300 mt-3 font-medium text-sm">Initializing deep scan...</p>
+        </div>
+
+        <!-- Error Box -->
+        <div id="errorBox" class="hidden bg-rose-900/50 border border-rose-700 text-rose-200 px-4 py-3 rounded-lg mb-6 text-sm"></div>
+
+        <!-- Results Dashboard -->
+        <div id="resultsDashboard" class="hidden space-y-8">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-900/70 border border-slate-700/80 rounded-xl p-5 shadow-inner">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Sold from Tranche</p>
+                    <p id="totalSoldVal" class="text-3xl font-bold text-emerald-400 mt-2">0.0000</p>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="bg-slate-900/70 border border-slate-700/80 rounded-xl p-5 shadow-inner">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Remaining Tranche Balance</p>
+                    <p id="remainingVal" class="text-3xl font-bold text-indigo-400 mt-2">0.0000</p>
+                </div>
+                <div class="bg-slate-900/70 border border-slate-700/80 rounded-xl p-5 shadow-inner">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Transactions Parsed</p>
+                    <p id="totalTxsVal" class="text-3xl font-bold text-amber-400 mt-2">0</p>
+                </div>
+            </div>
+
+            <!-- Transaction Log Table -->
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-slate-200">Filtered Token Activity Log</h3>
+                    <span id="filterCount" class="text-xs bg-slate-700 text-slate-300 px-3 py-1 rounded-full">Showing all matching records</span>
+                </div>
+                <div class="overflow-x-auto max-h-[500px] overflow-y-auto border border-slate-700 rounded-xl">
                     <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
-                                <th class="px-6 py-3 font-medium">Timestamp</th>
-                                <th class="px-6 py-3 font-medium">Type / Action</th>
-                                <th class="px-6 py-3 font-medium">Details</th>
-                                <th class="px-6 py-3 font-medium">Token</th>
-                                <th class="px-6 py-3 font-medium">Quantity</th>
-                                <th class="px-6 py-3 font-medium">Memo / ID</th>
+                        <thead class="bg-slate-900 text-slate-400 text-xs uppercase tracking-wider sticky top-0 z-10">
+                            <tr>
+                                <th class="py-3 px-4 border-b border-slate-700">Timestamp</th>
+                                <th class="py-3 px-4 border-b border-slate-700">Operation / Action</th>
+                                <th class="py-3 px-4 border-b border-slate-700">Details (From / To)</th>
+                                <th class="py-3 px-4 border-b border-slate-700">Quantity</th>
+                                <th class="py-3 px-4 border-b border-slate-700">Memo / ID</th>
                             </tr>
                         </thead>
-                        <tbody id="txTableBody" class="divide-y divide-slate-700/50 text-sm">
+                        <tbody id="tradesTableBody" class="divide-y divide-slate-700 text-sm text-slate-300">
                             <!-- Populated dynamically -->
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
-
-        <!-- Empty / Error State -->
-        <div id="emptyState" class="bg-slate-800 rounded-xl p-12 text-center border border-slate-700">
-            <i class="fa-solid fa-receipt text-slate-600 text-4xl mb-3"></i>
-            <p class="text-slate-400">Enter an account name above and click "Fetch History" to load transactions.</p>
-        </div>
     </div>
 
+    <!-- Script Logic -->
     <script>
-        async function fetchHistory() {
-            const account = document.getElementById('accountInput').value.trim().toLowerCase();
-            const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
-            
-            if (!account) {
-                alert('Please enter a Hive account name.');
-                return;
-            }
+        let connectedAccount = null;
 
-            const statusMsg = document.getElementById('statusMessage');
-            const resultsContainer = document.getElementById('resultsContainer');
-            const emptyState = document.getElementById('emptyState');
-            const txTableBody = document.getElementById('txTableBody');
-            const txCount = document.getElementById('txCount');
-
-            statusMsg.classList.remove('hidden');
-            resultsContainer.classList.add('hidden');
-            emptyState.classList.add('hidden');
-            txTableBody.innerHTML = '';
-
-            try {
-                let url = `https://history.hive-engine.com/history?account=${encodeURIComponent(account)}&limit=100`;
-                if (symbol) {
-                    url += `&symbol=${encodeURIComponent(symbol)}`;
-                }
-
-                let response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                let data = await response.json();
-
-                statusMsg.classList.add('hidden');
-
-                if (!data || data.length === 0) {
-                    emptyState.innerHTML = `<i class="fa-solid fa-circle-exclamation text-amber-500 text-4xl mb-3"></i><p class="text-slate-300">No transactions found for <strong>@${account}</strong>${symbol ? ' with symbol ' + symbol : ''}.</p>`;
-                    emptyState.classList.remove('hidden');
+        function connectKeychain() {
+            if (window.hive_keychain) {
+                const account = document.getElementById('accountName').value.trim();
+                if (!account) {
+                    alert('Please enter your Hive account name first.');
                     return;
                 }
+                // Request a simple keychain handshake/sign buffer to verify ownership
+                window.hive_keychain.requestSignBuffer(account, "Authenticate with Tranche Auditor", "Posting", (response) => {
+                    if (response.success) {
+                        connectedAccount = account;
+                        const btn = document.getElementById('keychainBtn');
+                        btn.className = "bg-emerald-600 text-white font-medium text-sm py-2 px-4 rounded-xl flex items-center gap-2 shadow-md cursor-default";
+                        document.getElementById('keychainBtnText').innerText = `@${account} Connected`;
+                    } else {
+                        alert('Keychain authentication failed or was cancelled.');
+                    }
+                });
+            } else {
+                alert('Hive Keychain extension not detected! Please install Hive Keychain to use extension features.');
+            }
+        }
 
-                txCount.textContent = `${data.length} transactions`;
+        async function runCompleteAudit() {
+            const account = document.getElementById('accountName').value.trim().toLowerCase();
+            const symbol = document.getElementById('tokenSymbol').value.trim().toUpperCase();
+            const trancheSize = parseFloat(document.getElementById('trancheSize').value) || 20000;
 
-                data.forEach(tx => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-slate-700/30 transition duration-150';
+            const errorBox = document.getElementById('errorBox');
+            const loadingBox = document.getElementById('loadingBox');
+            const statusText = document.getElementById('statusText');
+            const dashboard = document.getElementById('resultsDashboard');
+            const runBtn = document.getElementById('runBtn');
 
-                    const date = tx.timestamp ? new Date(tx.timestamp).toLocaleString() : 'N/A';
-                    const type = tx.operation || tx.from_type || 'Transfer';
-                    const token = tx.symbol || '-';
-                    const qty = tx.quantity ? parseFloat(tx.quantity).toLocaleString(undefined, {minimumFractionDigits: 2}) : '-';
+            errorBox.classList.add('hidden');
+            dashboard.classList.add('hidden');
+            loadingBox.classList.remove('hidden');
+            runBtn.disabled = true;
+            runBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            let offset = 0;
+            const limit = 1000;
+            let allTxs = [];
+            let fetching = true;
+
+            try {
+                // Pagination loop to fetch all historical records without truncation
+                while (fetching) {
+                    statusText.innerText = `Fetching history block chunk starting at offset ${offset}...`;
+
+                    let url = `https://history.hive-engine.com/accountHistory?account=${encodeURIComponent(account)}&limit=${limit}&offset=${offset}`;
+                    if (symbol) {
+                        url += `&symbol=${encodeURIComponent(symbol)}`;
+                    }
+
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const batch = await response.json();
+
+                    if (!batch || batch.length === 0) {
+                        fetching = false;
+                    } else {
+                        allTxs = allTxs.concat(batch);
+                        if (batch.length < limit) {
+                            fetching = false;
+                        } else {
+                            offset += limit;
+                        }
+                    }
+
+                    // Prevent main thread locking on large datasets
+                    await new Promise(resolve => setTimeout(resolve, 20));
+                }
+
+                loadingBox.classList.add('hidden');
+                runBtn.disabled = false;
+                runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                processAndDisplayResults(allTxs, symbol, trancheSize);
+
+            } catch (err) {
+                loadingBox.classList.add('hidden');
+                runBtn.disabled = false;
+                runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                errorBox.innerText = `Audit failed: ${err.message}. Make sure your GitHub Pages deployment has network access to history.hive-engine.com.`;
+                errorBox.classList.remove('hidden');
+            }
+        }
+
+        function processAndDisplayResults(transactions, symbol, trancheSize) {
+            let totalSold = 0;
+            const tbody = document.getElementById('tradesTableBody');
+            tbody.innerHTML = '';
+
+            // Filter transactions matching symbol and look for sales/market actions
+            const relevantTxs = transactions.filter(tx => {
+                const matchSymbol = !symbol || tx.symbol === symbol || (tx.contractPayload && tx.contractPayload.symbol === symbol);
+                return matchSymbol;
+            });
+
+            if (relevantTxs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 px-4 text-center text-slate-500">No transactions found for @${document.getElementById('accountName').value} with symbol ${symbol}.</td></tr>`;
+            } else {
+                relevantTxs.forEach(tx => {
+                    const qty = parseFloat(tx.quantity) || 0;
+                    const operation = tx.operation || tx.action || tx.contractAction || 'transfer';
+                    const memo = tx.memo || tx.txid || '-';
+                    const time = tx.timestamp ? new Date(tx.timestamp).toLocaleString() : 'N/A';
                     
                     let details = `-`;
                     if (tx.from && tx.to) {
@@ -134,27 +227,37 @@
                         details = `To @${tx.to}`;
                     }
 
-                    const memo = tx.memo || tx.txid ? `<span class="text-xs text-slate-400 font-mono truncate max-w-xs block" title="${tx.txid || ''}">${tx.memo || tx.txid.substring(0, 10) + '...'}</span>` : '-';
+                    // Detect if this transaction represents a sale (matching explorer text 'sold')
+                    const isSale = operation.toLowerCase().includes('sell') || 
+                                   (tx.memo && tx.memo.toLowerCase().includes('sold')) ||
+                                   (tx.description && tx.description.toLowerCase().includes('sold')) ||
+                                   (tx.to && tx.to.toLowerCase() !== document.getElementById('accountName').value.toLowerCase() && operation === 'transfer' && tx.from && tx.from.toLowerCase() === document.getElementById('accountName').value.toLowerCase());
 
+                    // If it's an outbound transfer / sale from your tranche, accumulate total sold
+                    if (isSale && tx.from && tx.from.toLowerCase() === document.getElementById('accountName').value.toLowerCase()) {
+                        totalSold += qty;
+                    }
+
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-750 transition-colors";
                     row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-slate-300 text-xs">${date}</td>
-                        <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-700 text-indigo-300">${type}</span></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-slate-300">${details}</td>
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-indigo-400">${token}</td>
-                        <td class="px-6 py-4 whitespace-nowrap font-semibold text-slate-200">${qty}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${memo}</td>
+                        <td class="py-3 px-4 font-mono text-xs text-slate-400">${time}</td>
+                        <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-700 text-emerald-300">${operation}</span></td>
+                        <td class="py-3 px-4 text-slate-300">${details}</td>
+                        <td class="py-3 px-4 font-semibold text-slate-100">${qty.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
+                        <td class="py-3 px-4 font-mono text-xs text-slate-400 truncate max-w-xs" title="${memo}">${memo}</td>
                     `;
-                    txTableBody.appendChild(row);
+                    tbody.appendChild(row);
                 });
-
-                resultsContainer.classList.remove('hidden');
-
-            } catch (error) {
-                console.error(error);
-                statusMsg.classList.add('hidden');
-                emptyState.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-500 text-4xl mb-3"></i><p class="text-slate-300">Error fetching history. Please check the account name or try again later.</p><p class="text-xs text-slate-500 mt-1">${error.message}</p>`;
-                emptyState.classList.remove('hidden');
             }
+
+            const remaining = Math.max(0, trancheSize - totalSold);
+
+            document.getElementById('totalSoldVal').innerText = totalSold.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+            document.getElementById('remainingVal').innerText = remaining.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+            document.getElementById('totalTxsVal').innerText = relevantTxs.length.toLocaleString();
+
+            document.getElementById('resultsDashboard').classList.remove('hidden');
         }
     </script>
 </body>
