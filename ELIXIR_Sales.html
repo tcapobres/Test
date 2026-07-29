@@ -3,215 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hive-Engine Deep Ledger Analysis</title>
+    <title>Hive-Engine Tranche Sales Calculator</title>
+    <!-- Tailwind CSS for modern, responsive UI -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
-    <div class="max-w-6xl mx-auto space-y-6">
-        
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center py-10 px-4">
+    <div class="max-w-4xl w-full bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
         <!-- Header -->
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
-            <h1 class="text-2xl font-bold text-emerald-400 mb-2">Hive-Engine Deep Ledger Totalizer</h1>
-            <p class="text-slate-400 text-sm">
-                This tool extracts the entire history from the beginning of time. It classifies every token movement (Transfers, Issuances, and Net Market Executions) to find all missing distributed/sold tokens.
-            </p>
-            
-            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Account Name</label>
-                    <input type="text" id="accountInput" value="nectarbytes" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Token Symbol</label>
-                    <input type="text" id="symbolInput" value="ELIXIR" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-emerald-500">
-                </div>
-                <div class="flex items-end">
-                    <button id="startBtn" onclick="startCalculation()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg px-4 py-2 transition shadow-lg flex items-center justify-center space-x-2">
-                        <span>Run Full Ledger Audit</span>
-                    </button>
-                </div>
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold tracking-tight text-indigo-400">Hive-Engine Tranche Sales Calculator</h1>
+            <p class="text-slate-400 mt-2">Precisely calculate actual market sales from a token tranche while completely excluding rewards, delegations, and standard transfers.</p>
+        </div>
+
+        <!-- Input Form -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Hive Username</label>
+                <input type="text" id="accountName" placeholder="e.g. alice" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Token Symbol</label>
+                <input type="text" id="tokenSymbol" placeholder="e.g. ELIXIR" value="ELIXIR" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Initial Tranche Size</label>
+                <input type="number" id="trancheSize" value="20000" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
         </div>
 
-        <!-- Ledger Breakdown (Shows exactly where tokens went) -->
-        <div id="summaryCard" class="hidden grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                <div class="text-xs uppercase text-slate-400 font-semibold">Direct Transfers Out</div>
-                <div id="statDirect" class="text-xl font-bold text-slate-200 mt-1">0.0000</div>
-                <div class="text-xs text-slate-500 mt-1">Sent wallet-to-wallet</div>
-            </div>
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                <div class="text-xs uppercase text-slate-400 font-semibold">Tokens Issued/Minted</div>
-                <div id="statIssued" class="text-xl font-bold text-slate-200 mt-1">0.0000</div>
-                <div class="text-xs text-slate-500 mt-1">Generated to others</div>
-            </div>
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                <div class="text-xs uppercase text-slate-400 font-semibold">Net Market Sales</div>
-                <div id="statMarket" class="text-xl font-bold text-slate-200 mt-1">0.0000</div>
-                <div class="text-xs text-slate-500 mt-1">(Sent to Market) - (Returns)</div>
-            </div>
-            <div class="bg-emerald-950/40 border border-emerald-500/50 rounded-xl p-5 shadow-lg shadow-emerald-900/20">
-                <div class="text-xs uppercase text-emerald-400 font-semibold">Total Sold / Distributed</div>
-                <div id="statGrandTotal" class="text-2xl font-bold text-emerald-400 mt-1">0.0000</div>
-                <div class="text-xs text-emerald-500/70 mt-1">Absolute Total Outflow</div>
-            </div>
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-4 mb-8">
+            <button onclick="fetchSalesData()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md">
+                Fetch & Calculate Sales
+            </button>
+            <button onclick="loadSampleData()" class="bg-slate-700 hover:bg-slate-650 text-slate-300 font-medium py-3 px-5 rounded-lg transition duration-200 border border-slate-600">
+                Load Sample Data
+            </button>
         </div>
 
-        <!-- Execution Log -->
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold text-slate-200">Live API Pagination Log</h2>
-                <div id="statusText" class="text-sm font-medium text-amber-400">Ready to search all history.</div>
+        <!-- Loading State -->
+        <div id="loading" class="hidden text-center py-10">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
+            <p class="text-slate-400 mt-3">Querying Hive-Engine market contract history...</p>
+        </div>
+
+        <!-- Error Message Box -->
+        <div id="errorBox" class="hidden bg-rose-900/50 border border-rose-700 text-rose-200 px-4 py-3 rounded-lg mb-6"></div>
+
+        <!-- Results Dashboard -->
+        <div id="resultsDashboard" class="hidden space-y-8">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-900/70 border border-slate-700/80 rounded-xl p-5">
+                    <p class="text-sm font-medium text-slate-400">Total Sold from Tranche</p>
+                    <p id="totalSoldVal" class="text-3xl font-bold text-indigo-400 mt-2">0.000</p>
+                </div>
+                <div class="bg-slate-900/70 border border-slate-700/80 rounded-xl p-5">
+                    <p class="text-sm font-medium text-slate-400">Remaining in Tranche</p>
+                    <p id="remainingVal" class="text-3xl font-bold text-emerald-400 mt-2">0.000</p>
+                </div>
+                <div class="bg-slate-900/70 border border-slate-700/80 rounded-xl p-5">
+                    <p class="text-sm font-medium text-slate-400">Total Revenue Generated</p>
+                    <p id="totalRevenueVal" class="text-3xl font-bold text-amber-400 mt-2">0.000 HIVE</p>
+                </div>
             </div>
-            
-            <div class="overflow-x-auto max-h-[400px] overflow-y-auto border border-slate-700 rounded-lg">
-                <table class="w-full text-left border-collapse text-sm">
-                    <thead class="bg-slate-900 text-slate-400 uppercase text-xs sticky top-0">
-                        <tr>
-                            <th class="p-3 border-b border-slate-700">Request #</th>
-                            <th class="p-3 border-b border-slate-700">Records Parsed</th>
-                            <th class="p-3 border-b border-slate-700">Page Transfer Out</th>
-                            <th class="p-3 border-b border-slate-700">Page Issued Out</th>
-                            <th class="p-3 border-b border-slate-700">Page Net Market</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logTableBody" class="divide-y divide-slate-700">
-                        <tr>
-                            <td colspan="5" class="p-4 text-center text-slate-500">Click the button above to begin absolute extraction.</td>
-                        </tr>
-                    </tbody>
-                </table>
+
+            <!-- Trade History Table -->
+            <div>
+                <h3 class="text-lg font-semibold text-slate-200 mb-4">Market Trade Breakdown (Seller Matches)</h3>
+                <div class="overflow-x-auto border border-slate-700 rounded-xl">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+                                <th class="py-3 px-4">Trade ID / Block</th>
+                                <th class="py-3 px-4">Quantity Sold</th>
+                                <th class="py-3 px-4">Execution Price</th>
+                                <th class="py-3 px-4">Total Received</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tradesTableBody" class="divide-y divide-slate-700 text-sm text-slate-300">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Script Logic -->
     <script>
-        async function startCalculation() {
-            const account = document.getElementById('accountInput').value.trim().toLowerCase();
-            const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
-            const startBtn = document.getElementById('startBtn');
-            const statusText = document.getElementById('statusText');
-            const logTableBody = document.getElementById('logTableBody');
-            const summaryCard = document.getElementById('summaryCard');
+        async function fetchSalesData() {
+            const account = document.getElementById('accountName').value.trim().toLowerCase();
+            const symbol = document.getElementById('tokenSymbol').value.trim().toUpperCase();
+            const trancheSize = parseFloat(document.getElementById('trancheSize').value) || 20000;
 
-            if (!account || !symbol) return;
+            const errorBox = document.getElementById('errorBox');
+            const loading = document.getElementById('loading');
+            const dashboard = document.getElementById('resultsDashboard');
 
-            // Lock UI and prep for run
-            startBtn.disabled = true;
-            startBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            logTableBody.innerHTML = '';
-            summaryCard.classList.add('hidden');
-            
-            let offset = 0;
-            let requestNumber = 1;
-            
-            // Ledger Totals
-            let totalDirectOut = 0.0;
-            let totalIssuedOut = 0.0;
-            let totalSentToMarket = 0.0;
-            let totalReturnedFromMarket = 0.0;
-            let totalRecordsProcessed = 0;
-            
-            const limit = 500; // Optimal chunk size for Hive Engine
-            const apiUrl = 'https://history.hive-engine.com/accountHistory';
+            errorBox.classList.add('hidden');
+            dashboard.classList.add('hidden');
+
+            if (!account) {
+                errorBox.innerText = "Please enter a valid Hive username.";
+                errorBox.classList.remove('hidden');
+                return;
+            }
+
+            loading.classList.remove('hidden');
 
             try {
-                while (true) {
-                    statusText.textContent = `Fetching request ${requestNumber} (Offset: ${offset}). Traveling back in time...`;
-                    
-                    const url = `${apiUrl}?account=${encodeURIComponent(account)}&symbol=${encodeURIComponent(symbol)}&limit=${limit}&offset=${offset}`;
-                    const response = await fetch(url);
-                    
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const data = await response.json();
+                // Query Hive-Engine RPC contract table 'tradesHistory' for the specific token symbol
+                const response = await fetch('https://api.hive-engine.com/rpc/contracts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        method: 'find',
+                        params: {
+                            contract: 'market',
+                            table: 'tradesHistory',
+                            query: { symbol: symbol },
+                            limit: 1000,
+                            offset: 0,
+                            sort: { _id: -1 }
+                        },
+                        id: 1
+                    })
+                });
 
-                    // If we receive an empty array, we have genuinely reached the beginning of the token's history.
-                    if (!data || !Array.isArray(data) || data.length === 0) {
-                        break; 
-                    }
+                const data = await response.json();
+                loading.classList.add('hidden');
 
-                    const recordsReturned = data.length;
-                    totalRecordsProcessed += recordsReturned;
-
-                    let pageDirect = 0.0;
-                    let pageIssued = 0.0;
-                    let pageMarketNet = 0.0;
-
-                    for (const tx of data) {
-                        // Deep parse of Hive Engine payload structures
-                        const fromAcc = (tx.from || (tx.contractPayload && tx.contractPayload.from) || tx.sender || '').toLowerCase();
-                        const toAcc = (tx.to || (tx.contractPayload && tx.contractPayload.to) || tx.receiver || '').toLowerCase();
-                        const qty = parseFloat(tx.quantity || (tx.contractPayload && tx.contractPayload.quantity) || 0);
-                        const operation = (tx.operation || tx.action || tx.contractAction || '').toLowerCase();
-
-                        if (qty <= 0) continue;
-
-                        // 1. Issued Tokens (Minted directly to users)
-                        if (operation.includes('issue') && toAcc !== account) {
-                            totalIssuedOut += qty;
-                            pageIssued += qty;
-                        }
-                        // 2. Market Contract Interactions
-                        else if (toAcc === 'market' && fromAcc === account) {
-                            // Tokens locked into sell orders
-                            totalSentToMarket += qty;
-                            pageMarketNet += qty;
-                        }
-                        else if (fromAcc === 'market' && toAcc === account) {
-                            // Tokens returned from canceled/expired sell orders
-                            totalReturnedFromMarket += qty;
-                            pageMarketNet -= qty;
-                        }
-                        // 3. Direct Wallet-to-Wallet Transfers
-                        else if (fromAcc === account && toAcc !== account && toAcc !== 'market') {
-                            totalDirectOut += qty;
-                            pageDirect += qty;
-                        }
-                    }
-
-                    // Append page results to the visual UI
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-slate-750 transition';
-                    row.innerHTML = `
-                        <td class="p-3 font-semibold text-slate-300">${requestNumber}</td>
-                        <td class="p-3 text-slate-400">${recordsReturned} items</td>
-                        <td class="p-3 text-emerald-400 font-medium">${pageDirect.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
-                        <td class="p-3 text-emerald-400 font-medium">${pageIssued.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
-                        <td class="p-3 text-amber-400 font-medium">${pageMarketNet.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
-                    `;
-                    logTableBody.appendChild(row);
-
-                    // Offset ensures we advance by exactly the amount the server gave us
-                    offset += recordsReturned;
-                    requestNumber++;
-
-                    // Buffer to prevent rate limits
-                    await new Promise(resolve => setTimeout(resolve, 150));
+                if (data.error) {
+                    throw new Error(data.error.message || 'RPC Node Error');
                 }
 
-                // Final Math Calculation
-                const netMarketSales = totalSentToMarket - totalReturnedFromMarket;
-                const absoluteGrandTotal = totalDirectOut + totalIssuedOut + netMarketSales;
+                const allTrades = data.result || [];
+                // Filter strictly where user was the seller
+                const userTrades = allTrades.filter(t => t.seller && t.seller.toLowerCase() === account);
 
-                statusText.className = 'text-sm font-bold text-emerald-400';
-                statusText.textContent = `Search Complete! Analyzed ${totalRecordsProcessed} total historical records.`;
-                
-                // Populate Dashboard Cards
-                document.getElementById('statDirect').textContent = totalDirectOut.toLocaleString(undefined, {minimumFractionDigits: 4});
-                document.getElementById('statIssued').textContent = totalIssuedOut.toLocaleString(undefined, {minimumFractionDigits: 4});
-                document.getElementById('statMarket').textContent = netMarketSales.toLocaleString(undefined, {minimumFractionDigits: 4});
-                document.getElementById('statGrandTotal').textContent = absoluteGrandTotal.toLocaleString(undefined, {minimumFractionDigits: 4}) + ` ${symbol}`;
-                
-                summaryCard.classList.remove('hidden');
+                processAndDisplay(userTrades, trancheSize);
 
-            } catch (error) {
-                console.error(error);
-                statusText.className = 'text-sm font-bold text-red-400';
-                statusText.textContent = `Error encountered: ${error.message}`;
-            } finally {
-                startBtn.disabled = false;
-                startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } catch (err) {
+                loading.classList.add('hidden');
+                errorBox.innerText = `Failed to fetch data from Hive-Engine node: ${err.message}. Try loading sample data to test the interface.`;
+                errorBox.classList.remove('hidden');
             }
+        }
+
+        function processAndDisplay(trades, trancheSize) {
+            let totalSold = 0;
+            let totalRevenue = 0;
+            const tbody = document.getElementById('tradesTableBody');
+            tbody.innerHTML = '';
+
+            if (trades.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="py-4 px-4 text-center text-slate-500">No market trade history found where this account acted as a seller for this token.</td></tr>`;
+            } else {
+                trades.forEach(trade => {
+                    const qty = parseFloat(trade.quantity) || 0;
+                    const price = parseFloat(trade.price) || 0;
+                    const rev = qty * price;
+
+                    totalSold += qty;
+                    totalRevenue += rev;
+
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-750 transition-colors";
+                    row.innerHTML = `
+                        <td class="py-3 px-4 font-mono text-xs text-indigo-300">#${trade._id || 'N/A'}</td>
+                        <td class="py-3 px-4 font-semibold text-slate-100">${qty.toLocaleString()}</td>
+                        <td class="py-3 px-4">${price.toFixed(6)}</td>
+                        <td class="py-3 px-4 text-amber-400 font-medium">${rev.toFixed(4)} HIVE</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            const remaining = Math.max(0, trancheSize - totalSold);
+
+            document.getElementById('totalSoldVal').innerText = totalSold.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+            document.getElementById('remainingVal').innerText = remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+            document.getElementById('totalRevenueVal').innerText = `${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} HIVE`;
+
+            document.getElementById('resultsDashboard').classList.remove('hidden');
+        }
+
+        function loadSampleData() {
+            document.getElementById('accountName').value = "sample-user";
+            document.getElementById('tokenSymbol').value = "ELIXIR";
+            document.getElementById('trancheSize').value = "20000";
+
+            // Mocked trades representing filled order book matches
+            const mockTrades = [
+                { _id: 104231, seller: "sample-user", quantity: "3500", price: "1.25" },
+                { _id: 103982, seller: "sample-user", quantity: "5000", price: "1.20" },
+                { _id: 102110, seller: "sample-user", quantity: "1500", price: "1.30" }
+            ];
+
+            processAndDisplay(mockTrades, 20000);
+            document.getElementById('errorBox').classList.add('hidden');
         }
     </script>
 </body>
