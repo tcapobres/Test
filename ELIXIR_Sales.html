@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hive-Engine Complete Tranche & Sales Auditor</title>
-    <!-- Tailwind CSS -->
+    <title>Hive-Engine Tranche & Sales Auditor</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col items-center py-10 px-4">
@@ -16,10 +14,10 @@
         <div class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-slate-700 pb-6 gap-4">
             <div>
                 <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-emerald-400">Hive-Engine Deep Tranche Auditor</h1>
-                <p class="text-slate-400 text-sm mt-1">Full historical pagination across Hive-Engine API with Keychain support.</p>
+                <p class="text-slate-400 text-sm mt-1">Multi-node failover history pagination with Keychain support.</p>
             </div>
             <div>
-                <button id="keychainBtn" onclick="connectKeychain()" class="bg-red-600 hover:bg-red-500 text-white font-medium text-sm py-2 px-4 rounded-xl transition duration-200 flex items-center gap-2 shadow-md">
+                <button id="keychainBtn" onclick="connectKeychain()" class="bg-rose-600 hover:bg-rose-500 text-white font-medium text-sm py-2 px-4 rounded-xl transition duration-200 flex items-center gap-2 shadow-md">
                     <i class="fa-solid fa-key"></i> <span id="keychainBtnText">Connect Keychain</span>
                 </button>
             </div>
@@ -102,7 +100,7 @@
         </div>
     </div>
 
-    <!-- Script Logic -->
+    <!-- Script Logic with Multi-Node Failover -->
     <script>
         let connectedAccount = null;
 
@@ -113,7 +111,6 @@
                     alert('Please enter your Hive account name first.');
                     return;
                 }
-                // Request a simple keychain handshake/sign buffer to verify ownership
                 window.hive_keychain.requestSignBuffer(account, "Authenticate with Tranche Auditor", "Posting", (response) => {
                     if (response.success) {
                         connectedAccount = account;
@@ -125,8 +122,32 @@
                     }
                 });
             } else {
-                alert('Hive Keychain extension not detected! Please install Hive Keychain to use extension features.');
+                alert('Hive Keychain extension not detected! Please install Hive Keychain.');
             }
+        }
+
+        async function fetchWithFailover(urlParams) {
+            // List of official historical API fallback mirrors to prevent single-point failures
+            const endpoints = [
+                `https://history.hive-engine.com/accountHistory?${urlParams}`,
+                `https://api.hive-engine.com/accounts/history?${urlParams}`
+            ];
+
+            let lastError = null;
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (Array.isArray(data)) {
+                            return data;
+                        }
+                    }
+                } catch (err) {
+                    lastError = err;
+                }
+            }
+            throw lastError || new Error("All Hive-Engine history nodes failed to respond.");
         }
 
         async function runCompleteAudit() {
@@ -152,21 +173,15 @@
             let fetching = true;
 
             try {
-                // Pagination loop to fetch all historical records without truncation
                 while (fetching) {
-                    statusText.innerText = `Fetching history block chunk starting at offset ${offset}...`;
+                    statusText.innerText = `Fetching records starting at offset ${offset}...`;
 
-                    let url = `https://history.hive-engine.com/accountHistory?account=${encodeURIComponent(account)}&limit=${limit}&offset=${offset}`;
+                    let params = `account=${encodeURIComponent(account)}&limit=${limit}&offset=${offset}`;
                     if (symbol) {
-                        url += `&symbol=${encodeURIComponent(symbol)}`;
+                        params += `&symbol=${encodeURIComponent(symbol)}`;
                     }
 
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const batch = await response.json();
+                    const batch = await fetchWithFailover(params);
 
                     if (!batch || batch.length === 0) {
                         fetching = false;
@@ -179,7 +194,6 @@
                         }
                     }
 
-                    // Prevent main thread locking on large datasets
                     await new Promise(resolve => setTimeout(resolve, 20));
                 }
 
@@ -187,30 +201,29 @@
                 runBtn.disabled = false;
                 runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
 
-                processAndDisplayResults(allTxs, symbol, trancheSize);
+                processAndDisplayResults(allTxs, symbol, trancheSize, account);
 
             } catch (err) {
                 loadingBox.classList.add('hidden');
                 runBtn.disabled = false;
                 runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                errorBox.innerText = `Audit failed: ${err.message}. Make sure your GitHub Pages deployment has network access to history.hive-engine.com.`;
+                errorBox.innerText = `Audit failed: ${err.message}. Please verify the account name or check network connection.`;
                 errorBox.classList.remove('hidden');
             }
         }
 
-        function processAndDisplayResults(transactions, symbol, trancheSize) {
+        function processAndDisplayResults(transactions, symbol, trancheSize, accountName) {
             let totalSold = 0;
             const tbody = document.getElementById('tradesTableBody');
             tbody.innerHTML = '';
 
-            // Filter transactions matching symbol and look for sales/market actions
             const relevantTxs = transactions.filter(tx => {
                 const matchSymbol = !symbol || tx.symbol === symbol || (tx.contractPayload && tx.contractPayload.symbol === symbol);
                 return matchSymbol;
             });
 
             if (relevantTxs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-6 px-4 text-center text-slate-500">No transactions found for @${document.getElementById('accountName').value} with symbol ${symbol}.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 px-4 text-center text-slate-500">No transactions found for @${accountName} with symbol ${symbol}.</td></tr>`;
             } else {
                 relevantTxs.forEach(tx => {
                     const qty = parseFloat(tx.quantity) || 0;
@@ -227,14 +240,12 @@
                         details = `To @${tx.to}`;
                     }
 
-                    // Detect if this transaction represents a sale (matching explorer text 'sold')
                     const isSale = operation.toLowerCase().includes('sell') || 
                                    (tx.memo && tx.memo.toLowerCase().includes('sold')) ||
                                    (tx.description && tx.description.toLowerCase().includes('sold')) ||
-                                   (tx.to && tx.to.toLowerCase() !== document.getElementById('accountName').value.toLowerCase() && operation === 'transfer' && tx.from && tx.from.toLowerCase() === document.getElementById('accountName').value.toLowerCase());
+                                   (tx.to && tx.to.toLowerCase() !== accountName && operation === 'transfer' && tx.from && tx.from.toLowerCase() === accountName);
 
-                    // If it's an outbound transfer / sale from your tranche, accumulate total sold
-                    if (isSale && tx.from && tx.from.toLowerCase() === document.getElementById('accountName').value.toLowerCase()) {
+                    if (isSale && tx.from && tx.from.toLowerCase() === accountName) {
                         totalSold += qty;
                     }
 
