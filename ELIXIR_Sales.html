@@ -3,279 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@nectarbytes | ELIXIR Tracker</title>
-    <style>
-        :root {
-            --bg-color: #f4f7f6;
-            --text-color: #333;
-            --card-bg: #ffffff;
-            --primary-color: #e31337; 
-            --secondary-color: #3498db;
-            --border-color: #eaeaea;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .container {
-            max-width: 800px;
-            width: 100%;
-        }
-
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-
-        .card h2 {
-            margin-top: 0;
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 10px;
-            font-size: 1.2rem;
-        }
-
-        .order-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .order-item:last-child {
-            border-bottom: none;
-        }
-
-        .timestamp {
-            color: #7f8c8d;
-            font-size: 0.9rem;
-        }
-
-        .details {
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        .price {
-            color: #27ae60;
-        }
-
-        .summary-box {
-            background: #eef2f3;
-            border-left: 5px solid var(--secondary-color);
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        button {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s ease;
-            margin-bottom: 20px;
-        }
-
-        button:hover {
-            background-color: #2980b9;
-        }
-
-        button:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-        }
-
-        .empty-state {
-            text-align: center;
-            color: #7f8c8d;
-            font-style: italic;
-            padding: 20px 0;
-        }
-
-        .error-state {
-            text-align: center;
-            color: var(--primary-color);
-            font-weight: bold;
-            padding: 20px 0;
-        }
-    </style>
+    <title>Hive-Engine Token Sales Totalizer</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-
-<div class="container">
-    <h1>📊 ELIXIR Market Tracker</h1>
-    <p style="text-align: center; margin-top: -10px; color: #7f8c8d;">Tracking Hive-Engine / Tribaldex for @nectarbytes</p>
-
-    <button id="refreshBtn" onclick="fetchAllMarketData()">Refresh Data</button>
-
-    <div class="summary-box" id="summaryBox">
-        <span>Total ELIXIR Sold (All-Time):</span>
-        <span id="totalSoldSum" style="color: var(--primary-color);">Calculating...</span>
-    </div>
-
-    <div class="card">
-        <h2>Active Sell Orders (Open Book)</h2>
-        <div id="activeOrdersList">
-            <div class="empty-state">Loading active orders...</div>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
+    <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- Header & Controls -->
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
+            <h1 class="text-2xl font-bold text-emerald-400 mb-2">Hive-Engine Token Sales Totalizer</h1>
+            <p class="text-slate-400 text-sm">
+                Fetches transaction history page-by-page from the Hive-Engine API, filters for outbound transfers (sales), and calculates the grand total.
+            </p>
+            
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Account Name</label>
+                    <input type="text" id="accountInput" value="nectarbytes" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Token Symbol</label>
+                    <input type="text" id="symbolInput" value="ELIXIR" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="flex items-end">
+                    <button id="startBtn" onclick="startCalculation()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg px-4 py-2 transition shadow-lg flex items-center justify-center space-x-2">
+                        <span>Calculate Sales</span>
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="card">
-        <h2>Recent Completed Trades (History)</h2>
-        <div id="completedTradesList">
-            <div class="empty-state">Loading trade history...</div>
+        <!-- Summary Stats Cards -->
+        <div id="summaryCard" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
+                <div class="text-xs uppercase text-slate-400 font-semibold">Total Transactions</div>
+                <div id="statTxs" class="text-2xl font-bold text-slate-200 mt-1">0</div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
+                <div class="text-xs uppercase text-slate-400 font-semibold">Pages Processed</div>
+                <div id="statPages" class="text-2xl font-bold text-slate-200 mt-1">0</div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 border-emerald-500/50 bg-emerald-950/20">
+                <div class="text-xs uppercase text-emerald-400 font-semibold">Grand Total Sold</div>
+                <div id="statGrandTotal" class="text-2xl font-bold text-emerald-400 mt-1">0.0000</div>
+            </div>
         </div>
+
+        <!-- Execution Log Table -->
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-slate-200">Execution Log</h2>
+                <div id="statusText" class="text-sm text-slate-400">Idle</div>
+            </div>
+            
+            <div class="overflow-x-auto max-h-96 overflow-y-auto border border-slate-700 rounded-lg">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead class="bg-slate-900 text-slate-400 uppercase text-xs sticky top-0">
+                        <tr>
+                            <th class="p-3 border-b border-slate-700">Page</th>
+                            <th class="p-3 border-b border-slate-700">TXs Found</th>
+                            <th class="p-3 border-b border-slate-700">Page Sold Total</th>
+                            <th class="p-3 border-b border-slate-700">Running Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody" class="divide-y divide-slate-700">
+                        <tr>
+                            <td colspan="4" class="p-4 text-center text-slate-500">Click "Calculate Sales" to begin.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
-</div>
 
-<script>
-    const API_URL = "https://api.hive-engine.com/rpc/contracts";
-    const ACCOUNT = "nectarbytes";
-    const SYMBOL = "ELIXIR";
+    <script>
+        async function startCalculation() {
+            const account = document.getElementById('accountInput').value.trim().toLowerCase();
+            const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
+            const startBtn = document.getElementById('startBtn');
+            const statusText = document.getElementById('statusText');
+            const logTableBody = document.getElementById('logTableBody');
+            const summaryCard = document.getElementById('summaryCard');
 
-    function createFetchPayload(table, query, limit = 1000, offset = 0) {
-        return {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                jsonrpc: "2.0",
-                id: Math.floor(Math.random() * 1000),
-                method: "find",
-                params: {
-                    contract: "market",
-                    table: table,
-                    query: query,
-                    limit: limit,
-                    offset: offset,
-                    indexes: [{ index: "_id", descending: false }]
-                }
-            })
-        };
-    }
+            if (!account || !symbol) {
+                alert('Please provide both an account name and token symbol.');
+                return;
+            }
 
-    function formatTimestamp(unixTimestamp) {
-        const date = new Date(unixTimestamp * 1000);
-        return date.toLocaleString(); 
-    }
+            // Reset UI states
+            startBtn.disabled = true;
+            startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            logTableBody.innerHTML = '';
+            summaryCard.classList.add('hidden');
+            statusText.textContent = 'Initializing fetch...';
 
-    async function fetchAllMarketData() {
-        const btn = document.getElementById('refreshBtn');
-        const activeContainer = document.getElementById('activeOrdersList');
-        const historyContainer = document.getElementById('completedTradesList');
-        const totalSoldSumEl = document.getElementById('totalSoldSum');
-
-        btn.disabled = true;
-        btn.textContent = "Fetching All-Time Data...";
-        activeContainer.innerHTML = '<div class="empty-state">Fetching active orders...</div>';
-        historyContainer.innerHTML = '<div class="empty-state">Fetching trade history...</div>';
-        totalSoldSumEl.textContent = "Scanning blocks...";
-
-        try {
-            // 1. Fetch Active Sell Orders
-            const activeRes = await fetch(API_URL, createFetchPayload("sellBook", { symbol: SYMBOL, account: ACCOUNT }, 100, 0));
-            const activeData = await activeRes.json();
-            const activeOrders = activeData.result || [];
-
-            // 2. Fetch trade history safely using indexed symbol query and filtering client-side
-            let allSales = [];
             let offset = 0;
-            let fetchMore = true;
-            const limit = 1000;
+            let pageNumber = 1;
+            let grandTotalSold = 0.0;
+            let totalTransactionsProcessed = 0;
+            const limit = 500;
+            const apiUrl = 'https://history.hive-engine.com/accountHistory';
 
-            while (fetchMore) {
-                const historyRes = await fetch(API_URL, createFetchPayload("tradesHistory", { symbol: SYMBOL }, limit, offset));
-                const historyData = await historyRes.json();
-                const batch = historyData.result || [];
+            try {
+                while (true) {
+                    const url = `${apiUrl}?account=${encodeURIComponent(account)}&symbol=${encodeURIComponent(symbol)}&limit=${limit}&offset=${offset}`;
+                    
+                    statusText.textContent = `Fetching Page ${pageNumber} (Offset: ${offset})...`;
 
-                // Filter client-side for sales belonging strictly to our target account
-                const userSales = batch.filter(trade => trade.seller === ACCOUNT);
-                allSales = allSales.concat(userSales);
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
 
-                if (batch.length < limit) {
-                    fetchMore = false;
-                } else {
+                    if (!data || data.length === 0) {
+                        break;
+                    }
+
+                    let pageSoldSum = 0.0;
+                    const txCount = data.length;
+                    totalTransactionsProcessed += txCount;
+
+                    for (const tx of data) {
+                        const sender = tx.from || '';
+                        const amount = parseFloat(tx.quantity || 0);
+
+                        // Outbound transfers from account are treated as sales
+                        if (sender === account) {
+                            pageSoldSum += amount;
+                        }
+                    }
+
+                    grandTotalSold += pageSoldSum;
+
+                    // Append row data to UI table
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-slate-750 transition';
+                    row.innerHTML = `
+                        <td class="p-3">${pageNumber}</td>
+                        <td class="p-3">${txCount}</td>
+                        <td class="p-3 text-emerald-400 font-medium">${pageSoldSum.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
+                        <td class="p-3 font-bold">${grandTotalSold.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
+                    `;
+                    logTableBody.appendChild(row);
+
+                    // End loop if batch returns fewer records than the limit
+                    if (txCount < limit) {
+                        break;
+                    }
+
                     offset += limit;
+                    pageNumber++;
+
+                    // Small pause to prevent API rate-limiting
+                    await new Promise(resolve => setTimeout(resolve, 200));
                 }
+
+                statusText.textContent = 'Completed successfully!';
+                
+                // Update and display Summary Card
+                document.getElementById('statTxs').textContent = totalTransactionsProcessed.toLocaleString();
+                document.getElementById('statPages').textContent = pageNumber.toLocaleString();
+                document.getElementById('statGrandTotal').textContent = grandTotalSold.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4}) + ` ${symbol}`;
+                summaryCard.classList.remove('hidden');
+
+            } catch (error) {
+                console.error(error);
+                statusText.textContent = `Error encountered.`;
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="4" class="p-4 text-center text-red-400">Failed to retrieve data: ${error.message}</td>`;
+                logTableBody.appendChild(row);
+            } finally {
+                startBtn.disabled = false;
+                startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
-
-            // Calculate total ELIXIR sold to date (all-time)
-            const totalSoldQuantity = allSales.reduce((sum, trade) => sum + parseFloat(trade.quantity || 0), 0);
-            totalSoldSumEl.textContent = `${totalSoldQuantity.toFixed(3)} ${SYMBOL}`;
-
-            // Render Active Orders
-            if (activeOrders.length > 0) {
-                activeContainer.innerHTML = activeOrders.map(order => `
-                    <div class="order-item">
-                        <div class="timestamp">Listed: ${formatTimestamp(order.timestamp)}</div>
-                        <div class="details">
-                            ${parseFloat(order.quantity).toFixed(3)} ${SYMBOL} @ 
-                            <span class="price">${parseFloat(order.price).toFixed(5)} HIVE</span>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                activeContainer.innerHTML = `<div class="empty-state">No active sell orders found for @${ACCOUNT}.</div>`;
-            }
-
-            // Render Trade History (sort descending, show top 5 most recent)
-            allSales.sort((a, b) => b.timestamp - a.timestamp);
-            const topRecentSales = allSales.slice(0, 5);
-
-            if (topRecentSales.length > 0) {
-                historyContainer.innerHTML = topRecentSales.map(trade => `
-                    <div class="order-item">
-                        <div class="timestamp">Sold: ${formatTimestamp(trade.timestamp)}</div>
-                        <div class="details">
-                            ${parseFloat(trade.quantity).toFixed(3)} ${SYMBOL} @ 
-                            <span class="price">${parseFloat(trade.price).toFixed(5)} HIVE</span>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                historyContainer.innerHTML = `<div class="empty-state">No completed sales found for @${ACCOUNT} since token creation.</div>`;
-            }
-
-        } catch (error) {
-            console.error("API Error:", error);
-            activeContainer.innerHTML = `<div class="error-state">Failed to fetch data. Check console.</div>`;
-            historyContainer.innerHTML = `<div class="error-state">Failed to fetch data. Check console.</div>`;
-            totalSoldSumEl.textContent = "Error";
-        } finally {
-            btn.disabled = false;
-            btn.textContent = "Refresh Data";
         }
-    }
-
-    window.onload = fetchAllMarketData;
-</script>
-
+    </script>
 </body>
 </html>
