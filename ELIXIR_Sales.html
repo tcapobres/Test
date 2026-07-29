@@ -210,8 +210,9 @@
                 
                 const isOutbound = fromUser === SELLER_ACCOUNT.toLowerCase();
                 
-                // Strict check: Only count transfers explicitly flagged as rewards/delegations or airdrops via memo keywords, 
-                // avoiding general market fulfillment or internal movements miscategorized as rewards.
+                // Refined strict criteria for delegation rewards:
+                // Must explicitly contain delegation-related terms, or target distribution keywords. 
+                // Exclude generic blank transfers or market fills misidentified as rewards.
                 const isExplicitRewardMemo = memo.includes('reward') || memo.includes('delegation') || memo.includes('airdrop') || memo.includes('bonus') || memo.includes('payout');
 
                 if (isTransferType && isOutbound && toUser && toUser !== SELLER_ACCOUNT.toLowerCase() && qty > 0 && isExplicitRewardMemo) {
@@ -262,9 +263,13 @@
 
               const tracedByAccount = {};
               ledgerMap.forEach(trade => {
-                if (!tracedByAccount[trade.buyer]) tracedByAccount[trade.buyer] = 0;
-                // Only account for volume that represents token acquisition (purchases or rewards)
-                tracedByAccount[trade.buyer] += trade.quantity;
+                // Only count market purchases or explicit rewards towards the inbound tracking accumulator.
+                // Delegation payments do not represent a sale or token purchase by the recipient from the order book,
+                // so we exclude them from matching against user balances to prevent skewing the reconciliation math.
+                if (trade.type !== 'DELEGATION PAYMENT') {
+                  if (!tracedByAccount[trade.buyer]) tracedByAccount[trade.buyer] = 0;
+                  tracedByAccount[trade.buyer] += trade.quantity;
+                }
               });
 
               let totalReconstructed = 0;
