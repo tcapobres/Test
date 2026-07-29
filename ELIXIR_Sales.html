@@ -197,7 +197,6 @@
                 });
               });
 
-              deepHistory.queryCount = 0;
               deepHistory.forEach(record => {
                 const op = String(record.operation || '').toLowerCase();
                 const isTransferType = op.includes('transfer') || op.includes('issue');
@@ -211,13 +210,9 @@
                 
                 const isOutbound = fromUser === SELLER_ACCOUNT.toLowerCase();
                 
-                // Authoritative target matching based on user ledger parameters:
-                // Specifically catches the ~37.67 total pool split across recent payouts, 
-                // and the explicit 50 ELIXIR test transfer.
-                const isTestTransfer = Math.abs(qty - 50.0) < 0.0001;
-                const isRecentPayout = qty > 0 && qty < 40 && (memo.includes('reward') || memo.includes('delegation') || memo.includes('payout') || memo.includes('airdrop') || memo.includes('bonus') || memo.length > 0);
-
-                if (isTransferType && isOutbound && toUser && toUser !== SELLER_ACCOUNT.toLowerCase() && qty > 0 && (isTestTransfer || isRecentPayout)) {
+                // Comprehensive inclusion filter for all outbound non-market token distributions/transfers from @nectarbytes
+                // Captures delegation reward payouts, test transfers, or general distributions without excluding legitimate outlays.
+                if (isTransferType && isOutbound && toUser && toUser !== SELLER_ACCOUNT.toLowerCase() && qty > 0) {
                     const key = `REWARD_${toUser}_${qty.toFixed(6)}_${timestamp}`;
                     ledgerMap.set(key, {
                       id: key,
@@ -230,7 +225,7 @@
                       price: 0,
                       totalHive: 0,
                       source: 'Blockchain Transfer',
-                      memo: record.memo ? `Transfer: ${record.memo}` : 'Delegation Payout'
+                      memo: record.memo ? `Transfer: ${record.memo}` : 'Delegation Payout / Transfer'
                     });
                 }
                 
@@ -265,6 +260,8 @@
 
               const tracedByAccount = {};
               ledgerMap.forEach(trade => {
+                // Keep delegation payments separate from automated reconciliation math, 
+                // but include them accurately in the grand totals.
                 if (trade.type !== 'DELEGATION PAYMENT') {
                   if (!tracedByAccount[trade.buyer]) tracedByAccount[trade.buyer] = 0;
                   tracedByAccount[trade.buyer] += trade.quantity;
