@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hive-Engine Token Sales Totalizer</title>
+    <title>Hive-Engine Token Sales Totalizer (Comprehensive)</title>
     <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
-    <div class="max-w-4xl mx-auto space-y-6">
+    <div class="max-w-5xl mx-auto space-y-6">
         
         <!-- Header & Controls -->
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
-            <h1 class="text-2xl font-bold text-emerald-400 mb-2">Hive-Engine Token Sales Totalizer</h1>
+            <h1 class="text-2xl font-bold text-emerald-400 mb-2">Hive-Engine Comprehensive Token Sales Totalizer</h1>
             <p class="text-slate-400 text-sm">
-                Fetches transaction history page-by-page from the Hive-Engine API, filters for outbound transfers (sales), and calculates the grand total.
+                Scans all pages from the Hive-Engine API, capturing both direct wallet transfers out and internal market sales/trades to compute the complete grand total.
             </p>
             
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -28,7 +28,7 @@
                 </div>
                 <div class="flex items-end">
                     <button id="startBtn" onclick="startCalculation()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg px-4 py-2 transition shadow-lg flex items-center justify-center space-x-2">
-                        <span>Calculate Sales</span>
+                        <span>Calculate Full Sales</span>
                     </button>
                 </div>
             </div>
@@ -37,7 +37,7 @@
         <!-- Summary Stats Cards -->
         <div id="summaryCard" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                <div class="text-xs uppercase text-slate-400 font-semibold">Total Transactions</div>
+                <div class="text-xs uppercase text-slate-400 font-semibold">Total Transactions Scanned</div>
                 <div id="statTxs" class="text-2xl font-bold text-slate-200 mt-1">0</div>
             </div>
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
@@ -45,7 +45,7 @@
                 <div id="statPages" class="text-2xl font-bold text-slate-200 mt-1">0</div>
             </div>
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 border-emerald-500/50 bg-emerald-950/20">
-                <div class="text-xs uppercase text-emerald-400 font-semibold">Grand Total Sold</div>
+                <div class="text-xs uppercase text-emerald-400 font-semibold">Grand Total Sold / Outbound</div>
                 <div id="statGrandTotal" class="text-2xl font-bold text-emerald-400 mt-1">0.0000</div>
             </div>
         </div>
@@ -53,23 +53,23 @@
         <!-- Execution Log Table -->
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold text-slate-200">Execution Log</h2>
+                <h2 class="text-lg font-semibold text-slate-200">Page-by-Page Breakdown</h2>
                 <div id="statusText" class="text-sm text-slate-400">Idle</div>
             </div>
             
-            <div class="overflow-x-auto max-h-96 overflow-y-auto border border-slate-700 rounded-lg">
+            <div class="overflow-x-auto max-h-[500px] overflow-y-auto border border-slate-700 rounded-lg">
                 <table class="w-full text-left border-collapse text-sm">
                     <thead class="bg-slate-900 text-slate-400 uppercase text-xs sticky top-0">
                         <tr>
                             <th class="p-3 border-b border-slate-700">Page</th>
-                            <th class="p-3 border-b border-slate-700">TXs Found</th>
-                            <th class="p-3 border-b border-slate-700">Page Sold Total</th>
+                            <th class="p-3 border-b border-slate-700">Records Scanned</th>
+                            <th class="p-3 border-b border-slate-700">Outbound/Sold on Page</th>
                             <th class="p-3 border-b border-slate-700">Running Total</th>
                         </tr>
                     </thead>
                     <tbody id="logTableBody" class="divide-y divide-slate-700">
                         <tr>
-                            <td colspan="4" class="p-4 text-center text-slate-500">Click "Calculate Sales" to begin.</td>
+                            <td colspan="4" class="p-4 text-center text-slate-500">Click "Calculate Full Sales" to begin.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -128,12 +128,18 @@
                     totalTransactionsProcessed += txCount;
 
                     for (const tx of data) {
-                        const sender = tx.from || '';
-                        const amount = parseFloat(tx.quantity || 0);
+                        const sender = tx.from || (tx.contractPayload && tx.contractPayload.account) || '';
+                        const quantity = parseFloat(tx.quantity || (tx.contractPayload && tx.contractPayload.quantity) || 0);
+                        const cName = tx.contractName || tx.contract || '';
+                        const cAction = tx.contractAction || tx.action || '';
 
-                        // Outbound transfers from account are treated as sales
-                        if (sender === account) {
-                            pageSoldSum += amount;
+                        // Check if the transaction represents tokens leaving the account (Transfers out or Market Sales)
+                        const isDirectTransferOut = (sender === account && cAction === 'transfer');
+                        const isMarketSale = (cName === 'market' && (cAction === 'sell' || cAction === 'marketSell') && sender === account);
+                        const isGenericOutbound = (sender === account && quantity > 0);
+
+                        if (isDirectTransferOut || isMarketSale || isGenericOutbound) {
+                            pageSoldSum += quantity;
                         }
                     }
 
@@ -150,7 +156,7 @@
                     `;
                     logTableBody.appendChild(row);
 
-                    // End loop if batch returns fewer records than the limit
+                    // Stop pagination loop if fewer records return than requested limit
                     if (txCount < limit) {
                         break;
                     }
@@ -158,7 +164,7 @@
                     offset += limit;
                     pageNumber++;
 
-                    // Small pause to prevent API rate-limiting
+                    // Small pause to prevent API rate limits
                     await new Promise(resolve => setTimeout(resolve, 200));
                 }
 
