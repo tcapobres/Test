@@ -8,13 +8,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col items-center py-10 px-4">
-    <div class="max-w-5xl w-full bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
+    <div class="max-w-6xl w-full bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
         
         <!-- Header & Keychain Status -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-slate-700 pb-6 gap-4">
             <div>
                 <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-emerald-400">Hive-Engine Deep Tranche Auditor</h1>
-                <p class="text-slate-400 text-sm mt-1">Multi-node failover history pagination with precise quantity mapping.</p>
+                <p class="text-slate-400 text-sm mt-1">Multi-node failover with universal payload quantity mapping & raw inspector.</p>
             </div>
             <div>
                 <button id="keychainBtn" onclick="connectKeychain()" class="bg-rose-600 hover:bg-rose-500 text-white font-medium text-sm py-2 px-4 rounded-xl transition duration-200 flex items-center gap-2 shadow-md">
@@ -61,7 +61,7 @@
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="bg-slate-900/70 border border-slate-700/80 rounded-xl p-5 shadow-inner">
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Sold from Tranche</p>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Outbound / Sold</p>
                     <p id="totalSoldVal" class="text-3xl font-bold text-emerald-400 mt-2">0.0000</p>
                 </div>
                 <div class="bg-slate-900/70 border border-slate-700/80 rounded-xl p-5 shadow-inner">
@@ -89,6 +89,7 @@
                                 <th class="py-3 px-4 border-b border-slate-700">Details (From / To)</th>
                                 <th class="py-3 px-4 border-b border-slate-700">Quantity</th>
                                 <th class="py-3 px-4 border-b border-slate-700">Memo / ID</th>
+                                <th class="py-3 px-4 border-b border-slate-700 text-center">Raw</th>
                             </tr>
                         </thead>
                         <tbody id="tradesTableBody" class="divide-y divide-slate-700 text-sm text-slate-300">
@@ -100,9 +101,21 @@
         </div>
     </div>
 
-    <!-- Script Logic with Multi-Node Failover & Precise Payload Parsing -->
+    <!-- Raw JSON Modal -->
+    <div id="jsonModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+                <h3 class="text-lg font-bold text-emerald-400">Raw Transaction Payload</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-100"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <pre id="modalContent" class="bg-slate-900 p-4 rounded-xl text-xs font-mono text-slate-300 overflow-y-auto flex-1 border border-slate-700"></pre>
+        </div>
+    </div>
+
+    <!-- Script Logic -->
     <script>
         let connectedAccount = null;
+        let globalTxsCache = [];
 
         function connectKeychain() {
             if (window.hive_keychain) {
@@ -138,9 +151,7 @@
                     const response = await fetch(endpoint);
                     if (response.ok) {
                         const data = await response.json();
-                        if (Array.isArray(data)) {
-                            return data;
-                        }
+                        if (Array.isArray(data)) return data;
                     }
                 } catch (err) {
                     lastError = err;
@@ -196,6 +207,7 @@
                     await new Promise(resolve => setTimeout(resolve, 20));
                 }
 
+                globalTxsCache = allTxs;
                 loadingBox.classList.add('hidden');
                 runBtn.disabled = false;
                 runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -211,34 +223,58 @@
             }
         }
 
+        function extractQuantity(tx) {
+            if (!tx) return 0;
+            if (tx.quantity !== undefined && tx.quantity !== null) return parseFloat(tx.quantity) || 0;
+            if (tx.amount !== undefined && tx.amount !== null) return parseFloat(tx.amount) || 0;
+            if (tx.qty !== undefined && tx.qty !== null) return parseFloat(tx.qty) || 0;
+            
+            if (tx.contractPayload) {
+                if (tx.contractPayload.quantity !== undefined) return parseFloat(tx.contractPayload.quantity) || 0;
+                if (tx.contractPayload.amount !== undefined) return parseFloat(tx.contractPayload.amount) || 0;
+            }
+
+            const subObjects = [tx.params, tx.data, tx.details, tx.payload];
+            for (const sub of subObjects) {
+                if (sub) {
+                    if (sub.quantity !== undefined) return parseFloat(sub.quantity) || 0;
+                    if (sub.amount !== undefined) return parseFloat(sub.amount) || 0;
+                }
+            }
+            return 0;
+        }
+
+        function extractFrom(tx) {
+            if (!tx) return '';
+            return tx.from || (tx.contractPayload && tx.contractPayload.from) || '';
+        }
+
+        function extractTo(tx) {
+            if (!tx) return '';
+            return tx.to || (tx.contractPayload && tx.contractPayload.to) || '';
+        }
+
         function processAndDisplayResults(transactions, symbol, trancheSize, accountName) {
-            let totalSold = 0;
+            let totalOutbound = 0;
             const tbody = document.getElementById('tradesTableBody');
             tbody.innerHTML = '';
 
             const relevantTxs = transactions.filter(tx => {
                 const txSymbol = tx.symbol || (tx.contractPayload && tx.contractPayload.symbol);
-                const matchSymbol = !symbol || (txSymbol && txSymbol.toUpperCase() === symbol);
-                return matchSymbol;
+                return !symbol || (txSymbol && txSymbol.toUpperCase() === symbol);
             });
 
             if (relevantTxs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-6 px-4 text-center text-slate-500">No transactions found for @${accountName} with symbol ${symbol}.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="py-6 px-4 text-center text-slate-500">No transactions found for @${accountName} with symbol ${symbol}.</td></tr>`;
             } else {
-                relevantTxs.forEach(tx => {
-                    // Extract quantity from either top-level or contractPayload securely
-                    const qty = parseFloat(
-                        tx.quantity || 
-                        (tx.contractPayload && tx.contractPayload.quantity) || 
-                        0
-                    );
-
+                relevantTxs.forEach((tx, index) => {
+                    const qty = extractQuantity(tx);
                     const operation = tx.operation || tx.contractAction || tx.action || tx.contractName || 'transfer';
                     const memo = tx.memo || (tx.contractPayload && tx.contractPayload.memo) || tx.txid || '-';
                     const time = tx.timestamp ? new Date(tx.timestamp).toLocaleString() : 'N/A';
                     
-                    let fromAcc = tx.from || (tx.contractPayload && tx.contractPayload.from) || '';
-                    let toAcc = tx.to || (tx.contractPayload && tx.contractPayload.to) || '';
+                    const fromAcc = extractFrom(tx);
+                    const toAcc = extractTo(tx);
 
                     let details = `-`;
                     if (fromAcc && toAcc) {
@@ -249,15 +285,9 @@
                         details = `To @${toAcc}`;
                     }
 
-                    // Check if transaction represents a sale or outbound transfer from user
-                    const isMarketSell = (tx.contractName === 'market' && (tx.contractAction === 'marketSell' || tx.contractAction === 'sell')) ||
-                                         operation.toLowerCase().includes('sell');
-                    const isOutboundTransfer = (operation.toLowerCase() === 'transfer' && fromAcc.toLowerCase() === accountName);
-                    const hasSoldText = (memo && memo.toLowerCase().includes('sold')) ||
-                                        (tx.description && tx.description.toLowerCase().includes('sold'));
-
-                    if ((isMarketSell || isOutboundTransfer || hasSoldText) && fromAcc.toLowerCase() === accountName) {
-                        totalSold += qty;
+                    // Count any transaction where tokens leave the user's account as part of the distributed/sold tranche
+                    if (fromAcc && fromAcc.toLowerCase() === accountName) {
+                        totalOutbound += qty;
                     }
 
                     const row = document.createElement('tr');
@@ -268,18 +298,29 @@
                         <td class="py-3 px-4 text-slate-300">${details}</td>
                         <td class="py-3 px-4 font-semibold text-slate-100">${qty.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
                         <td class="py-3 px-4 font-mono text-xs text-slate-400 truncate max-w-xs" title="${memo}">${memo}</td>
+                        <td class="py-3 px-4 text-center"><button onclick="inspectTx(${index})" class="bg-slate-700 hover:bg-slate-600 text-emerald-400 px-2.5 py-1 rounded text-xs transition-colors"><i class="fa-solid fa-code"></i></button></td>
                     `;
                     tbody.appendChild(row);
                 });
             }
 
-            const remaining = Math.max(0, trancheSize - totalSold);
+            const remaining = Math.max(0, trancheSize - totalOutbound);
 
-            document.getElementById('totalSoldVal').innerText = totalSold.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+            document.getElementById('totalSoldVal').innerText = totalOutbound.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
             document.getElementById('remainingVal').innerText = remaining.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
             document.getElementById('totalTxsVal').innerText = relevantTxs.length.toLocaleString();
 
             document.getElementById('resultsDashboard').classList.remove('hidden');
+        }
+
+        function inspectTx(index) {
+            const tx = globalTxsCache[index];
+            document.getElementById('modalContent').innerText = JSON.stringify(tx, null, 2);
+            document.getElementById('jsonModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('jsonModal').classList.add('hidden');
         }
     </script>
 </body>
