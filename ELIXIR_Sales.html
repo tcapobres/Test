@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hive-Engine Full History Totalizer</title>
-    <!-- Tailwind CSS CDN for styling -->
+    <title>Hive-Engine Deep Ledger Analysis</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
-    <div class="max-w-5xl mx-auto space-y-6">
+    <div class="max-w-6xl mx-auto space-y-6">
         
         <!-- Header -->
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
-            <h1 class="text-2xl font-bold text-emerald-400 mb-2">Hive-Engine Full Token Totalizer</h1>
+            <h1 class="text-2xl font-bold text-emerald-400 mb-2">Hive-Engine Deep Ledger Totalizer</h1>
             <p class="text-slate-400 text-sm">
-                This version features a bulletproof pagination engine that dynamically adapts to API server limits, guaranteeing every single record is scanned and calculated.
+                This tool extracts the entire history from the beginning of time. It classifies every token movement (Transfers, Issuances, and Net Market Executions) to find all missing distributed/sold tokens.
             </p>
             
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -28,25 +27,33 @@
                 </div>
                 <div class="flex items-end">
                     <button id="startBtn" onclick="startCalculation()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg px-4 py-2 transition shadow-lg flex items-center justify-center space-x-2">
-                        <span>Fetch & Total Everything</span>
+                        <span>Run Full Ledger Audit</span>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Summary Stats Cards -->
-        <div id="summaryCard" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Ledger Breakdown (Shows exactly where tokens went) -->
+        <div id="summaryCard" class="hidden grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                <div class="text-xs uppercase text-slate-400 font-semibold">Total Records Fetched</div>
-                <div id="statTxs" class="text-2xl font-bold text-slate-200 mt-1">0</div>
+                <div class="text-xs uppercase text-slate-400 font-semibold">Direct Transfers Out</div>
+                <div id="statDirect" class="text-xl font-bold text-slate-200 mt-1">0.0000</div>
+                <div class="text-xs text-slate-500 mt-1">Sent wallet-to-wallet</div>
             </div>
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                <div class="text-xs uppercase text-slate-400 font-semibold">API Requests (Pages)</div>
-                <div id="statPages" class="text-2xl font-bold text-slate-200 mt-1">0</div>
+                <div class="text-xs uppercase text-slate-400 font-semibold">Tokens Issued/Minted</div>
+                <div id="statIssued" class="text-xl font-bold text-slate-200 mt-1">0.0000</div>
+                <div class="text-xs text-slate-500 mt-1">Generated to others</div>
             </div>
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 border-emerald-500/50 bg-emerald-950/20">
-                <div class="text-xs uppercase text-emerald-400 font-semibold">Grand Total Outbound/Sold</div>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
+                <div class="text-xs uppercase text-slate-400 font-semibold">Net Market Sales</div>
+                <div id="statMarket" class="text-xl font-bold text-slate-200 mt-1">0.0000</div>
+                <div class="text-xs text-slate-500 mt-1">(Sent to Market) - (Returns)</div>
+            </div>
+            <div class="bg-emerald-950/40 border border-emerald-500/50 rounded-xl p-5 shadow-lg shadow-emerald-900/20">
+                <div class="text-xs uppercase text-emerald-400 font-semibold">Total Sold / Distributed</div>
                 <div id="statGrandTotal" class="text-2xl font-bold text-emerald-400 mt-1">0.0000</div>
+                <div class="text-xs text-emerald-500/70 mt-1">Absolute Total Outflow</div>
             </div>
         </div>
 
@@ -54,23 +61,23 @@
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold text-slate-200">Live API Pagination Log</h2>
-                <div id="statusText" class="text-sm font-medium text-amber-400">Ready</div>
+                <div id="statusText" class="text-sm font-medium text-amber-400">Ready to search all history.</div>
             </div>
             
-            <div class="overflow-x-auto max-h-[500px] overflow-y-auto border border-slate-700 rounded-lg">
+            <div class="overflow-x-auto max-h-[400px] overflow-y-auto border border-slate-700 rounded-lg">
                 <table class="w-full text-left border-collapse text-sm">
                     <thead class="bg-slate-900 text-slate-400 uppercase text-xs sticky top-0">
                         <tr>
                             <th class="p-3 border-b border-slate-700">Request #</th>
-                            <th class="p-3 border-b border-slate-700">Offset Depth</th>
-                            <th class="p-3 border-b border-slate-700">Records Found</th>
-                            <th class="p-3 border-b border-slate-700">Sold on Page</th>
-                            <th class="p-3 border-b border-slate-700">Running Total</th>
+                            <th class="p-3 border-b border-slate-700">Records Parsed</th>
+                            <th class="p-3 border-b border-slate-700">Page Transfer Out</th>
+                            <th class="p-3 border-b border-slate-700">Page Issued Out</th>
+                            <th class="p-3 border-b border-slate-700">Page Net Market</th>
                         </tr>
                     </thead>
                     <tbody id="logTableBody" class="divide-y divide-slate-700">
                         <tr>
-                            <td colspan="5" class="p-4 text-center text-slate-500">Click the button above to begin extraction.</td>
+                            <td colspan="5" class="p-4 text-center text-slate-500">Click the button above to begin absolute extraction.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -97,78 +104,104 @@
             
             let offset = 0;
             let requestNumber = 1;
-            let grandTotalSold = 0.0;
+            
+            // Ledger Totals
+            let totalDirectOut = 0.0;
+            let totalIssuedOut = 0.0;
+            let totalSentToMarket = 0.0;
+            let totalReturnedFromMarket = 0.0;
             let totalRecordsProcessed = 0;
             
-            // We can ask for 1000, but the API will likely return chunks of 50-100.
-            const requestedLimit = 1000; 
+            const limit = 500; // Optimal chunk size for Hive Engine
             const apiUrl = 'https://history.hive-engine.com/accountHistory';
 
             try {
                 while (true) {
-                    statusText.textContent = `Fetching request ${requestNumber} at offset ${offset}...`;
-                    const url = `${apiUrl}?account=${encodeURIComponent(account)}&symbol=${encodeURIComponent(symbol)}&limit=${requestedLimit}&offset=${offset}`;
-
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    statusText.textContent = `Fetching request ${requestNumber} (Offset: ${offset}). Traveling back in time...`;
                     
+                    const url = `${apiUrl}?account=${encodeURIComponent(account)}&symbol=${encodeURIComponent(symbol)}&limit=${limit}&offset=${offset}`;
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const data = await response.json();
 
-                    // The absolute safest break condition: Only stop if the server gives us exactly zero records
+                    // If we receive an empty array, we have genuinely reached the beginning of the token's history.
                     if (!data || !Array.isArray(data) || data.length === 0) {
-                        if (requestNumber === 1) {
-                            logTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-yellow-400">No records found for @${account} - ${symbol}.</td></tr>`;
-                        }
                         break; 
                     }
 
                     const recordsReturned = data.length;
-                    let pageSoldSubtotal = 0.0;
+                    totalRecordsProcessed += recordsReturned;
+
+                    let pageDirect = 0.0;
+                    let pageIssued = 0.0;
+                    let pageMarketNet = 0.0;
 
                     for (const tx of data) {
-                        // Extract variables handling standard transfers, market ops, and contract payloads
-                        const sender = (tx.from || (tx.contractPayload && tx.contractPayload.from) || tx.sender || '').toLowerCase();
-                        const receiver = (tx.to || (tx.contractPayload && tx.contractPayload.to) || tx.receiver || '').toLowerCase();
-                        const quantityStr = tx.quantity || (tx.contractPayload && tx.contractPayload.quantity) || '0';
-                        const quantity = parseFloat(quantityStr);
-                        
-                        // Condition: Tokens are outbound (Sent by the account, but not returned to themselves)
-                        if (sender === account && receiver !== account && quantity > 0) {
-                            pageSoldSubtotal += quantity;
+                        // Deep parse of Hive Engine payload structures
+                        const fromAcc = (tx.from || (tx.contractPayload && tx.contractPayload.from) || tx.sender || '').toLowerCase();
+                        const toAcc = (tx.to || (tx.contractPayload && tx.contractPayload.to) || tx.receiver || '').toLowerCase();
+                        const qty = parseFloat(tx.quantity || (tx.contractPayload && tx.contractPayload.quantity) || 0);
+                        const operation = (tx.operation || tx.action || tx.contractAction || '').toLowerCase();
+
+                        if (qty <= 0) continue;
+
+                        // 1. Issued Tokens (Minted directly to users)
+                        if (operation.includes('issue') && toAcc !== account) {
+                            totalIssuedOut += qty;
+                            pageIssued += qty;
+                        }
+                        // 2. Market Contract Interactions
+                        else if (toAcc === 'market' && fromAcc === account) {
+                            // Tokens locked into sell orders
+                            totalSentToMarket += qty;
+                            pageMarketNet += qty;
+                        }
+                        else if (fromAcc === 'market' && toAcc === account) {
+                            // Tokens returned from canceled/expired sell orders
+                            totalReturnedFromMarket += qty;
+                            pageMarketNet -= qty;
+                        }
+                        // 3. Direct Wallet-to-Wallet Transfers
+                        else if (fromAcc === account && toAcc !== account && toAcc !== 'market') {
+                            totalDirectOut += qty;
+                            pageDirect += qty;
                         }
                     }
 
-                    grandTotalSold += pageSoldSubtotal;
-                    totalRecordsProcessed += recordsReturned;
-
-                    // Append row to the visual UI
+                    // Append page results to the visual UI
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-slate-750 transition';
                     row.innerHTML = `
                         <td class="p-3 font-semibold text-slate-300">${requestNumber}</td>
-                        <td class="p-3 text-slate-400">${offset}</td>
-                        <td class="p-3">${recordsReturned} items</td>
-                        <td class="p-3 text-emerald-400 font-medium">${pageSoldSubtotal.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
-                        <td class="p-3 font-bold">${grandTotalSold.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
+                        <td class="p-3 text-slate-400">${recordsReturned} items</td>
+                        <td class="p-3 text-emerald-400 font-medium">${pageDirect.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
+                        <td class="p-3 text-emerald-400 font-medium">${pageIssued.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
+                        <td class="p-3 text-amber-400 font-medium">${pageMarketNet.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
                     `;
                     logTableBody.appendChild(row);
 
-                    // FIXED PAGINATION: 
-                    // Instead of failing if records < limit, we just advance the offset by the EXACT number of items the server gave us.
+                    // Offset ensures we advance by exactly the amount the server gave us
                     offset += recordsReturned;
                     requestNumber++;
 
-                    // 150ms delay to prevent being rate-limited by the Hive-Engine node
+                    // Buffer to prevent rate limits
                     await new Promise(resolve => setTimeout(resolve, 150));
                 }
 
+                // Final Math Calculation
+                const netMarketSales = totalSentToMarket - totalReturnedFromMarket;
+                const absoluteGrandTotal = totalDirectOut + totalIssuedOut + netMarketSales;
+
                 statusText.className = 'text-sm font-bold text-emerald-400';
-                statusText.textContent = 'All pages extracted successfully!';
+                statusText.textContent = `Search Complete! Analyzed ${totalRecordsProcessed} total historical records.`;
                 
-                // Show grand total summaries
-                document.getElementById('statTxs').textContent = totalRecordsProcessed.toLocaleString();
-                document.getElementById('statPages').textContent = (requestNumber - 1).toLocaleString();
-                document.getElementById('statGrandTotal').textContent = grandTotalSold.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4}) + ` ${symbol}`;
+                // Populate Dashboard Cards
+                document.getElementById('statDirect').textContent = totalDirectOut.toLocaleString(undefined, {minimumFractionDigits: 4});
+                document.getElementById('statIssued').textContent = totalIssuedOut.toLocaleString(undefined, {minimumFractionDigits: 4});
+                document.getElementById('statMarket').textContent = netMarketSales.toLocaleString(undefined, {minimumFractionDigits: 4});
+                document.getElementById('statGrandTotal').textContent = absoluteGrandTotal.toLocaleString(undefined, {minimumFractionDigits: 4}) + ` ${symbol}`;
+                
                 summaryCard.classList.remove('hidden');
 
             } catch (error) {
