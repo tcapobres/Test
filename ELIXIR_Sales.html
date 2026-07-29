@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hive-Engine Token Sales Totalizer (Comprehensive)</title>
+    <title>Hive-Engine Multi-Page Token Totalizer</title>
     <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -12,9 +12,9 @@
         
         <!-- Header & Controls -->
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
-            <h1 class="text-2xl font-bold text-emerald-400 mb-2">Hive-Engine Comprehensive Token Sales Totalizer</h1>
+            <h1 class="text-2xl font-bold text-emerald-400 mb-2">Hive-Engine Multi-Page Token Totalizer</h1>
             <p class="text-slate-400 text-sm">
-                Scans all pages from the Hive-Engine API, capturing both direct wallet transfers out and internal market sales/trades to compute the complete grand total.
+                Fetches records page-by-page, calculates each page's individual subtotal for outbound/sold tokens, and computes the grand total.
             </p>
             
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -28,7 +28,7 @@
                 </div>
                 <div class="flex items-end">
                     <button id="startBtn" onclick="startCalculation()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg px-4 py-2 transition shadow-lg flex items-center justify-center space-x-2">
-                        <span>Calculate Full Sales</span>
+                        <span>Run Multi-Page Totalizer</span>
                     </button>
                 </div>
             </div>
@@ -37,11 +37,11 @@
         <!-- Summary Stats Cards -->
         <div id="summaryCard" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                <div class="text-xs uppercase text-slate-400 font-semibold">Total Transactions Scanned</div>
+                <div class="text-xs uppercase text-slate-400 font-semibold">Total Records Scanned</div>
                 <div id="statTxs" class="text-2xl font-bold text-slate-200 mt-1">0</div>
             </div>
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                <div class="text-xs uppercase text-slate-400 font-semibold">Pages Processed</div>
+                <div class="text-xs uppercase text-slate-400 font-semibold">Total Pages Processed</div>
                 <div id="statPages" class="text-2xl font-bold text-slate-200 mt-1">0</div>
             </div>
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 border-emerald-500/50 bg-emerald-950/20">
@@ -53,7 +53,7 @@
         <!-- Execution Log Table -->
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold text-slate-200">Page-by-Page Breakdown</h2>
+                <h2 class="text-lg font-semibold text-slate-200">Page-by-Page Individual Breakdown</h2>
                 <div id="statusText" class="text-sm text-slate-400">Idle</div>
             </div>
             
@@ -61,15 +61,15 @@
                 <table class="w-full text-left border-collapse text-sm">
                     <thead class="bg-slate-900 text-slate-400 uppercase text-xs sticky top-0">
                         <tr>
-                            <th class="p-3 border-b border-slate-700">Page</th>
-                            <th class="p-3 border-b border-slate-700">Records Scanned</th>
-                            <th class="p-3 border-b border-slate-700">Outbound/Sold on Page</th>
-                            <th class="p-3 border-b border-slate-700">Running Total</th>
+                            <th class="p-3 border-b border-slate-700">Page #</th>
+                            <th class="p-3 border-b border-slate-700">Items on Page</th>
+                            <th class="p-3 border-b border-slate-700">Page Individual Subtotal</th>
+                            <th class="p-3 border-b border-slate-700">Running Grand Total</th>
                         </tr>
                     </thead>
                     <tbody id="logTableBody" class="divide-y divide-slate-700">
                         <tr>
-                            <td colspan="4" class="p-4 text-center text-slate-500">Click "Calculate Full Sales" to begin.</td>
+                            <td colspan="4" class="p-4 text-center text-slate-500">Click "Run Multi-Page Totalizer" to begin.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -97,13 +97,13 @@
             startBtn.classList.add('opacity-50', 'cursor-not-allowed');
             logTableBody.innerHTML = '';
             summaryCard.classList.add('hidden');
-            statusText.textContent = 'Initializing fetch...';
+            statusText.textContent = 'Initializing pagination...';
 
             let offset = 0;
             let pageNumber = 1;
             let grandTotalSold = 0.0;
-            let totalTransactionsProcessed = 0;
-            const limit = 500;
+            let totalRecordsProcessed = 0;
+            const limit = 100; // Chunk size per page request
             const apiUrl = 'https://history.hive-engine.com/accountHistory';
 
             try {
@@ -119,13 +119,20 @@
                     
                     const data = await response.json();
 
-                    if (!data || data.length === 0) {
+                    // If response is empty or not an array, we have reached the end of all pages
+                    if (!data || !Array.isArray(data) || data.length === 0) {
+                        // If page 1 returned nothing, show a note
+                        if (pageNumber === 1) {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `<td colspan="4" class="p-4 text-center text-yellow-400">No records found for account @${account} with symbol ${symbol}.</td>`;
+                            logTableBody.appendChild(row);
+                        }
                         break;
                     }
 
-                    let pageSoldSum = 0.0;
-                    const txCount = data.length;
-                    totalTransactionsProcessed += txCount;
+                    let pageSubtotal = 0.0;
+                    const recordCount = data.length;
+                    totalRecordsProcessed += recordCount;
 
                     for (const tx of data) {
                         const sender = tx.from || (tx.contractPayload && tx.contractPayload.account) || '';
@@ -133,45 +140,46 @@
                         const cName = tx.contractName || tx.contract || '';
                         const cAction = tx.contractAction || tx.action || '';
 
-                        // Check if the transaction represents tokens leaving the account (Transfers out or Market Sales)
-                        const isDirectTransferOut = (sender === account && cAction === 'transfer');
+                        // Accumulate values where tokens leave the account (transfers out, market sales, or outbound quantities)
+                        const isOutboundTransfer = (sender === account && cAction === 'transfer');
                         const isMarketSale = (cName === 'market' && (cAction === 'sell' || cAction === 'marketSell') && sender === account);
                         const isGenericOutbound = (sender === account && quantity > 0);
 
-                        if (isDirectTransferOut || isMarketSale || isGenericOutbound) {
-                            pageSoldSum += quantity;
+                        if (isOutboundTransfer || isMarketSale || isGenericOutbound) {
+                            pageSubtotal += quantity;
                         }
                     }
 
-                    grandTotalSold += pageSoldSum;
+                    grandTotalSold += pageSubtotal;
 
-                    // Append row data to UI table
+                    // Append individual page row to table
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-slate-750 transition';
                     row.innerHTML = `
-                        <td class="p-3">${pageNumber}</td>
-                        <td class="p-3">${txCount}</td>
-                        <td class="p-3 text-emerald-400 font-medium">${pageSoldSum.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
+                        <td class="p-3 font-semibold">Page ${pageNumber}</td>
+                        <td class="p-3">${recordCount}</td>
+                        <td class="p-3 text-emerald-400 font-medium">${pageSubtotal.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
                         <td class="p-3 font-bold">${grandTotalSold.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
                     `;
                     logTableBody.appendChild(row);
 
-                    // Stop pagination loop if fewer records return than requested limit
-                    if (txCount < limit) {
+                    // If the number of records returned is less than our chunk limit, this was the final page
+                    if (recordCount < limit) {
                         break;
                     }
 
+                    // Advance to next page offset
                     offset += limit;
                     pageNumber++;
 
-                    // Small pause to prevent API rate limits
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                    // Small pause to prevent browser locking/API rate-limiting
+                    await new Promise(resolve => setTimeout(resolve, 150));
                 }
 
-                statusText.textContent = 'Completed successfully!';
+                statusText.textContent = 'All pages processed successfully!';
                 
                 // Update and display Summary Card
-                document.getElementById('statTxs').textContent = totalTransactionsProcessed.toLocaleString();
+                document.getElementById('statTxs').textContent = totalRecordsProcessed.toLocaleString();
                 document.getElementById('statPages').textContent = pageNumber.toLocaleString();
                 document.getElementById('statGrandTotal').textContent = grandTotalSold.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4}) + ` ${symbol}`;
                 summaryCard.classList.remove('hidden');
