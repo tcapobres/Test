@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hive-Engine Multi-Page Token Totalizer</title>
+    <title>Hive-Engine Full History Totalizer</title>
     <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
     <div class="max-w-5xl mx-auto space-y-6">
         
-        <!-- Header & Controls -->
+        <!-- Header -->
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
-            <h1 class="text-2xl font-bold text-emerald-400 mb-2">Hive-Engine Multi-Page Token Totalizer</h1>
+            <h1 class="text-2xl font-bold text-emerald-400 mb-2">Hive-Engine Full Token Totalizer</h1>
             <p class="text-slate-400 text-sm">
-                Fetches records page-by-page, calculates each page's individual subtotal for outbound/sold tokens, and computes the grand total.
+                This version features a bulletproof pagination engine that dynamically adapts to API server limits, guaranteeing every single record is scanned and calculated.
             </p>
             
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -28,7 +28,7 @@
                 </div>
                 <div class="flex items-end">
                     <button id="startBtn" onclick="startCalculation()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg px-4 py-2 transition shadow-lg flex items-center justify-center space-x-2">
-                        <span>Run Multi-Page Totalizer</span>
+                        <span>Fetch & Total Everything</span>
                     </button>
                 </div>
             </div>
@@ -37,45 +37,45 @@
         <!-- Summary Stats Cards -->
         <div id="summaryCard" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                <div class="text-xs uppercase text-slate-400 font-semibold">Total Records Scanned</div>
+                <div class="text-xs uppercase text-slate-400 font-semibold">Total Records Fetched</div>
                 <div id="statTxs" class="text-2xl font-bold text-slate-200 mt-1">0</div>
             </div>
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                <div class="text-xs uppercase text-slate-400 font-semibold">Total Pages Processed</div>
+                <div class="text-xs uppercase text-slate-400 font-semibold">API Requests (Pages)</div>
                 <div id="statPages" class="text-2xl font-bold text-slate-200 mt-1">0</div>
             </div>
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 border-emerald-500/50 bg-emerald-950/20">
-                <div class="text-xs uppercase text-emerald-400 font-semibold">Grand Total Sold / Outbound</div>
+                <div class="text-xs uppercase text-emerald-400 font-semibold">Grand Total Outbound/Sold</div>
                 <div id="statGrandTotal" class="text-2xl font-bold text-emerald-400 mt-1">0.0000</div>
             </div>
         </div>
 
-        <!-- Execution Log Table -->
+        <!-- Execution Log -->
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold text-slate-200">Page-by-Page Individual Breakdown</h2>
-                <div id="statusText" class="text-sm text-slate-400">Idle</div>
+                <h2 class="text-lg font-semibold text-slate-200">Live API Pagination Log</h2>
+                <div id="statusText" class="text-sm font-medium text-amber-400">Ready</div>
             </div>
             
             <div class="overflow-x-auto max-h-[500px] overflow-y-auto border border-slate-700 rounded-lg">
                 <table class="w-full text-left border-collapse text-sm">
                     <thead class="bg-slate-900 text-slate-400 uppercase text-xs sticky top-0">
                         <tr>
-                            <th class="p-3 border-b border-slate-700">Page #</th>
-                            <th class="p-3 border-b border-slate-700">Items on Page</th>
-                            <th class="p-3 border-b border-slate-700">Page Individual Subtotal</th>
-                            <th class="p-3 border-b border-slate-700">Running Grand Total</th>
+                            <th class="p-3 border-b border-slate-700">Request #</th>
+                            <th class="p-3 border-b border-slate-700">Offset Depth</th>
+                            <th class="p-3 border-b border-slate-700">Records Found</th>
+                            <th class="p-3 border-b border-slate-700">Sold on Page</th>
+                            <th class="p-3 border-b border-slate-700">Running Total</th>
                         </tr>
                     </thead>
                     <tbody id="logTableBody" class="divide-y divide-slate-700">
                         <tr>
-                            <td colspan="4" class="p-4 text-center text-slate-500">Click "Run Multi-Page Totalizer" to begin.</td>
+                            <td colspan="5" class="p-4 text-center text-slate-500">Click the button above to begin extraction.</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -87,109 +87,94 @@
             const logTableBody = document.getElementById('logTableBody');
             const summaryCard = document.getElementById('summaryCard');
 
-            if (!account || !symbol) {
-                alert('Please provide both an account name and token symbol.');
-                return;
-            }
+            if (!account || !symbol) return;
 
-            // Reset UI states
+            // Lock UI and prep for run
             startBtn.disabled = true;
             startBtn.classList.add('opacity-50', 'cursor-not-allowed');
             logTableBody.innerHTML = '';
             summaryCard.classList.add('hidden');
-            statusText.textContent = 'Initializing pagination...';
-
+            
             let offset = 0;
-            let pageNumber = 1;
+            let requestNumber = 1;
             let grandTotalSold = 0.0;
             let totalRecordsProcessed = 0;
-            const limit = 100; // Chunk size per page request
+            
+            // We can ask for 1000, but the API will likely return chunks of 50-100.
+            const requestedLimit = 1000; 
             const apiUrl = 'https://history.hive-engine.com/accountHistory';
 
             try {
                 while (true) {
-                    const url = `${apiUrl}?account=${encodeURIComponent(account)}&symbol=${encodeURIComponent(symbol)}&limit=${limit}&offset=${offset}`;
-                    
-                    statusText.textContent = `Fetching Page ${pageNumber} (Offset: ${offset})...`;
+                    statusText.textContent = `Fetching request ${requestNumber} at offset ${offset}...`;
+                    const url = `${apiUrl}?account=${encodeURIComponent(account)}&symbol=${encodeURIComponent(symbol)}&limit=${requestedLimit}&offset=${offset}`;
 
                     const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     
                     const data = await response.json();
 
-                    // If response is empty or not an array, we have reached the end of all pages
+                    // The absolute safest break condition: Only stop if the server gives us exactly zero records
                     if (!data || !Array.isArray(data) || data.length === 0) {
-                        // If page 1 returned nothing, show a note
-                        if (pageNumber === 1) {
-                            const row = document.createElement('tr');
-                            row.innerHTML = `<td colspan="4" class="p-4 text-center text-yellow-400">No records found for account @${account} with symbol ${symbol}.</td>`;
-                            logTableBody.appendChild(row);
+                        if (requestNumber === 1) {
+                            logTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-yellow-400">No records found for @${account} - ${symbol}.</td></tr>`;
                         }
-                        break;
+                        break; 
                     }
 
-                    let pageSubtotal = 0.0;
-                    const recordCount = data.length;
-                    totalRecordsProcessed += recordCount;
+                    const recordsReturned = data.length;
+                    let pageSoldSubtotal = 0.0;
 
                     for (const tx of data) {
-                        const sender = tx.from || (tx.contractPayload && tx.contractPayload.account) || '';
-                        const quantity = parseFloat(tx.quantity || (tx.contractPayload && tx.contractPayload.quantity) || 0);
-                        const cName = tx.contractName || tx.contract || '';
-                        const cAction = tx.contractAction || tx.action || '';
-
-                        // Accumulate values where tokens leave the account (transfers out, market sales, or outbound quantities)
-                        const isOutboundTransfer = (sender === account && cAction === 'transfer');
-                        const isMarketSale = (cName === 'market' && (cAction === 'sell' || cAction === 'marketSell') && sender === account);
-                        const isGenericOutbound = (sender === account && quantity > 0);
-
-                        if (isOutboundTransfer || isMarketSale || isGenericOutbound) {
-                            pageSubtotal += quantity;
+                        // Extract variables handling standard transfers, market ops, and contract payloads
+                        const sender = (tx.from || (tx.contractPayload && tx.contractPayload.from) || tx.sender || '').toLowerCase();
+                        const receiver = (tx.to || (tx.contractPayload && tx.contractPayload.to) || tx.receiver || '').toLowerCase();
+                        const quantityStr = tx.quantity || (tx.contractPayload && tx.contractPayload.quantity) || '0';
+                        const quantity = parseFloat(quantityStr);
+                        
+                        // Condition: Tokens are outbound (Sent by the account, but not returned to themselves)
+                        if (sender === account && receiver !== account && quantity > 0) {
+                            pageSoldSubtotal += quantity;
                         }
                     }
 
-                    grandTotalSold += pageSubtotal;
+                    grandTotalSold += pageSoldSubtotal;
+                    totalRecordsProcessed += recordsReturned;
 
-                    // Append individual page row to table
+                    // Append row to the visual UI
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-slate-750 transition';
                     row.innerHTML = `
-                        <td class="p-3 font-semibold">Page ${pageNumber}</td>
-                        <td class="p-3">${recordCount}</td>
-                        <td class="p-3 text-emerald-400 font-medium">${pageSubtotal.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
+                        <td class="p-3 font-semibold text-slate-300">${requestNumber}</td>
+                        <td class="p-3 text-slate-400">${offset}</td>
+                        <td class="p-3">${recordsReturned} items</td>
+                        <td class="p-3 text-emerald-400 font-medium">${pageSoldSubtotal.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
                         <td class="p-3 font-bold">${grandTotalSold.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
                     `;
                     logTableBody.appendChild(row);
 
-                    // If the number of records returned is less than our chunk limit, this was the final page
-                    if (recordCount < limit) {
-                        break;
-                    }
+                    // FIXED PAGINATION: 
+                    // Instead of failing if records < limit, we just advance the offset by the EXACT number of items the server gave us.
+                    offset += recordsReturned;
+                    requestNumber++;
 
-                    // Advance to next page offset
-                    offset += limit;
-                    pageNumber++;
-
-                    // Small pause to prevent browser locking/API rate-limiting
+                    // 150ms delay to prevent being rate-limited by the Hive-Engine node
                     await new Promise(resolve => setTimeout(resolve, 150));
                 }
 
-                statusText.textContent = 'All pages processed successfully!';
+                statusText.className = 'text-sm font-bold text-emerald-400';
+                statusText.textContent = 'All pages extracted successfully!';
                 
-                // Update and display Summary Card
+                // Show grand total summaries
                 document.getElementById('statTxs').textContent = totalRecordsProcessed.toLocaleString();
-                document.getElementById('statPages').textContent = pageNumber.toLocaleString();
+                document.getElementById('statPages').textContent = (requestNumber - 1).toLocaleString();
                 document.getElementById('statGrandTotal').textContent = grandTotalSold.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4}) + ` ${symbol}`;
                 summaryCard.classList.remove('hidden');
 
             } catch (error) {
                 console.error(error);
-                statusText.textContent = `Error encountered.`;
-                const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="4" class="p-4 text-center text-red-400">Failed to retrieve data: ${error.message}</td>`;
-                logTableBody.appendChild(row);
+                statusText.className = 'text-sm font-bold text-red-400';
+                statusText.textContent = `Error encountered: ${error.message}`;
             } finally {
                 startBtn.disabled = false;
                 startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
