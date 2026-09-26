@@ -1,3 +1,5 @@
+Here is the updated standalone HTML file. The processKeychainPayouts function has been adjusted to slice the valid payouts into batches of 15, execute them sequentially using Hive Keychain, and include a 5-second pause (with progress alerts) between each batch.
+Save this code as NECTAR-DelegationPayoutCalculator.html to replace your existing file:
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -121,7 +123,6 @@
             let lastId = -1; 
             let finishedScanningDelegations = false;
 
-            // Step 1: Scan historical ledger backwards to collect curation rewards and all delegation configurations
             while (true) {
                 let currentLimit = 1000;
                 if (lastId !== -1 && lastId < 1000) currentLimit = lastId + 1;
@@ -144,10 +145,8 @@
                         const delegator = op[1].delegator;
                         const vests = parseFloat(op[1].vesting_shares);
                         
-                        // Collect delegation operations for chronological analysis
                         allDelegationOps.push({ delegator, vests, timestamp });
                         
-                        // Guard check to ensure we have found the baseline snapshot of current living configurations
                         if (!finishedScanningDelegations) {
                             if (!activeDelegationsForTrack.has(delegator)) {
                                 activeDelegationsForTrack.set(delegator, vests);
@@ -163,14 +162,12 @@
                 }
                 
                 const oldestTimestampFetched = new Date(history[0][1].timestamp + 'Z').getTime();
-                // Break only if we have crossed backward past the start window and have mapped all existing delegations
                 if (oldestTimestampFetched < startTs && finishedScanningDelegations) break;
                 if (history[0][0] === 0) break;
                 lastId = history[0][0] - 1; 
                 status.innerHTML = `<div class="loading-bar">Scanning history (Index: ${lastId})...</div>`;
             }
 
-            // Step 2: Sort operations chronologically to accurately process time segments
             allDelegationOps.sort((a, b) => a.timestamp - b.timestamp);
 
             let currentDelegations = new Map();
@@ -180,14 +177,12 @@
             for (const op of allDelegationOps) {
                 const timestamp = op.timestamp;
 
-                // Establish baseline states that happened before the selected window starts
                 if (timestamp < startTs) {
                     if (op.vests > 0) currentDelegations.set(op.delegator, op.vests); 
                     else currentDelegations.delete(op.delegator);
                     continue;
                 }
 
-                // If an operation happens inside or after our window, calculate the weight for the period since lastTimestamp
                 const segmentEnd = Math.min(timestamp, endTs);
                 if (segmentEnd > lastTimestamp) {
                     const duration = segmentEnd - lastTimestamp;
@@ -200,12 +195,10 @@
 
                 if (timestamp > endTs) break;
 
-                // Apply changes to the active state tracker
                 if (op.vests > 0) currentDelegations.set(op.delegator, op.vests); 
                 else currentDelegations.delete(op.delegator);
             }
 
-            // Handle the remaining time segment up to the exact window closure timestamp
             if (endTs > lastTimestamp) {
                 const duration = endTs - lastTimestamp;
                 currentDelegations.forEach((vests, user) => {
@@ -214,7 +207,6 @@
                 });
             }
 
-            // Step 3: Compute Time-Weighted Average Effective Vesting Shares per user
             let totalEffectiveVests = 0;
             let effectiveDelegations = new Map();
 
@@ -227,7 +219,6 @@
                 }
             });
 
-            // Step 4: Map payouts using the newly derived Time-Weighted Prorated Shares
             const totalHive = totalCurationVests * hpRate;
             const rows = document.getElementById('rows');
             rows.innerHTML = '';
@@ -236,7 +227,6 @@
             effectiveDelegations.forEach((effectiveVests, user) => {
                 const share = totalEffectiveVests > 0 ? (effectiveVests / totalEffectiveVests) : 0;
                 const hiveShare = totalHive * share;
-                // Formula remains unchanged: ELIXIR = HIVE Share * (Price * 0.5)
                 const elixir = hiveShare * (price * 0.5);
                 totalElixirGlobal += elixir;
                 
@@ -272,18 +262,56 @@
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
 
-    function processKeychainPayouts() {
+    async function processKeychainPayouts() {
         if (!window.hive_keychain) { alert("Hive Keychain not detected."); return; }
         const validPayouts = scanResults.filter(row => parseFloat(row.elixirToIssue) > 0);
         if (validPayouts.length === 0) return;
-        const txOperations = validPayouts.map(row => ({
-            contractName: "tokens",
-            contractAction: "transfer",
-            contractPayload: { symbol: "ELIXIR", to: row.delegator, quantity: row.elixirToIssue, memo: `ELIXIR Reward Payout (${document.getElementById('startDate').value} to ${document.getElementById('endDate').value})` }
-        }));
-        window.hive_keychain.requestCustomJson(target, "ssc-mainnet-hive", "Active", JSON.stringify(txOperations), "ELIXIR Automated Distribution", (res) => {
-            if (res.success) alert("Payout successful!");
-        });
+
+        const batchSize = 15;
+        const batches = [];
+        for (let i = 0; i < validPayouts.length; i += batchSize) {
+            batches.push(validPayouts.slice(i, i + batchSize));
+        }
+
+        for (let index = 0; index < batches.length; index++) {
+            const batch = batches[index];
+            const txOperations = batch.map(row => ({
+                contractName: "tokens",
+                contractAction: "transfer",
+                contractPayload: { 
+                    symbol: "ELIXIR", 
+                    to: row.delegator, 
+                    quantity: row.elixirToIssue, 
+                    memo: `ELIXIR Reward Payout (${document.getElementById('startDate').value} to ${document.getElementById('endDate').value})` 
+                }
+            }));
+
+            try {
+                await new Promise((resolve, reject) => {
+                    window.hive_keychain.requestCustomJson(
+                        target, 
+                        "ssc-mainnet-hive", 
+                        "Active", 
+                        JSON.stringify(txOperations), 
+                        `ELIXIR Payout (Batch ${index + 1} of ${batches.length})`, 
+                        (res) => {
+                            if (res && res.success) resolve(res);
+                            else reject(res);
+                        }
+                    );
+                });
+
+                if (index < batches.length - 1) {
+                    alert(`Batch ${index + 1} of ${batches.length} successful! Pausing for 5 seconds before the next batch...`);
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                } else {
+                    alert("All payout batches completed successfully!");
+                }
+            } catch (err) {
+                alert(`Batch ${index + 1} failed or was cancelled.`);
+                break;
+            }
+        }
     }
 </script>
 </body>
