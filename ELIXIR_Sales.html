@@ -52,6 +52,53 @@
       const SYMBOL = 'ELIXIR';
       const TRANCHE_1_PRICE = 1.0;
 
+      // Helper: Fetch JSON with automatic multi-node fallback for Hive-Engine RPC
+      const fetchRpcWithFallback = async (bodyPayload) => {
+        const nodes = [
+          'https://api.hive-engine.com/rpc/contracts',
+          'https://herpc.dtools.dev/contracts',
+          'https://api.primersion.com/contracts'
+        ];
+        for (const url of nodes) {
+          try {
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(bodyPayload),
+            });
+            if (!response.ok) continue;
+            const json = await response.json();
+            if (json && Array.isArray(json.result)) {
+              return json.result;
+            }
+          } catch (e) {
+            console.warn(`RPC node failed (${url}), trying next...`, e);
+          }
+        }
+        return [];
+      };
+
+      // Helper: Fetch History Node with multi-node fallback
+      const fetchHistoryWithFallback = async (queryString) => {
+        const nodes = [
+          'https://history.hive-engine.com/accountHistory',
+          'https://accounts.hive-engine.com/accountHistory'
+        ];
+        for (const baseUrl of nodes) {
+          try {
+            const res = await fetch(`${baseUrl}?${queryString}`);
+            if (!res.ok) continue;
+            const json = await res.json();
+            if (Array.isArray(json)) {
+              return json;
+            }
+          } catch (e) {
+            console.warn(`History node failed (${baseUrl}), trying next...`, e);
+          }
+        }
+        return null;
+      };
+
       // 1. Fetch exact current balances (Liquid + Staked)
       const fetchRichList = async () => {
         let allBalances = [];
@@ -59,18 +106,12 @@
         let hasMore = true;
 
         while (hasMore) {
-          const response = await fetch('https://api.hive-engine.com/rpc/contracts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              id: 1,
-              method: 'find',
-              params: { contract: 'tokens', table: 'balances', query: { symbol: SYMBOL }, limit: 1000, offset },
-            }),
+          const records = await fetchRpcWithFallback({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'find',
+            params: { contract: 'tokens', table: 'balances', query: { symbol: SYMBOL }, limit: 1000, offset },
           });
-          const json = await response.json();
-          const records = json.result || [];
           allBalances = [...allBalances, ...records];
           if (records.length < 1000) hasMore = false;
           else offset += 1000;
@@ -95,24 +136,18 @@
         let hasMore = true;
 
         while (hasMore) {
-          const response = await fetch('https://api.hive-engine.com/rpc/contracts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              id: 1,
-              method: 'find',
-              params: {
-                contract: 'market',
-                table: 'tradesHistory',
-                query: { symbol: SYMBOL, seller: SELLER_ACCOUNT },
-                limit: 1000,
-                offset
-              },
-            }),
+          const records = await fetchRpcWithFallback({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'find',
+            params: {
+              contract: 'market',
+              table: 'tradesHistory',
+              query: { symbol: SYMBOL, seller: SELLER_ACCOUNT },
+              limit: 1000,
+              offset
+            },
           });
-          const json = await response.json();
-          const records = json.result || [];
           allTrades = [...allTrades, ...records];
           if (records.length < 1000) hasMore = false;
           else offset += 1000;
@@ -121,30 +156,29 @@
         return allTrades;
       };
 
-      // 3. Force deep filter on History Node
+      // 3. Force deep filter on History Node (paginating newest-first)
       const fetchDeepHistory = async () => {
         let allRecords = [];
         let offset = 0;
         let hasMore = true;
 
-        try {
-          while (hasMore) {
-            const res = await fetch(`https://history.hive-engine.com/accountHistory?account=${SELLER_ACCOUNT}&symbol=${SYMBOL}&limit=1000&offset=${offset}`);
-            if (!res.ok) break;
-            
-            const data = await res.json();
-            if (!data || data.length === 0) break;
-            
-            allRecords = [...allRecords, ...data];
-            if (data.length < 1000) hasMore = false;
-            else offset += 1000;
-            
-            if (allRecords.length >= 30000) break; 
-          }
-        } catch (err) {
-          console.warn("History node timeout, proceeding with RPC and Rich List reconciliation.");
+        while (hasMore) {
+          const data = await fetchHistoryWithFallback(`account=${SELLER_ACCOUNT}&symbol=${SYMBOL}&limit=1000&offset=${offset}`);
+          if (!data || data.length === 0) break;
+          
+          allRecords = [...allRecords, ...data];
+          if (data.length < 1000) hasMore = false;
+          else offset += 1000;
+          
+          if (allRecords.length >= 30000) break; 
         }
         return allRecords;
+      };
+
+      // 4. Fetch buyer-side history for accounts that have un-traced balance increases
+      const fetchBuyerHistoryFallback = async (buyerAccount) => {
+        const data = await fetchHistoryWithFallback(`account=${buyerAccount}&symbol=${SYMBOL}&limit=500&offset=0`);
+        return Array.isArray(data) ? data : [];
       };
 
       const processData = async () => {
@@ -198,16 +232,16 @@
             });
           });
 
-          // Merge History Node transfers and older market sells
+          // Merge History Node transfers and market sells
           deepHistory.forEach((record, idx) => {
             const op = String(record.operation || '').toLowerCase();
             const isTransferType = op.includes('transfer') || op.includes('issue');
-            const isMarketType = op === 'market_sell' || op.includes('sell');
+            const isMarketType = op === 'market_sell' || op.includes('sell') || op === 'market_closeorder';
             
             const accountUser = String(record.account || '').toLowerCase();
             const fromUser = String(record.from || record.sender || accountUser || '').toLowerCase();
             const toUser = String(record.to || record.receiver || record.buyer || '').toLowerCase();
-            const qty = parseFloat(record.quantity || record.amount || 0);
+            const qty = parseFloat(record.quantity || record.amount || record.quantityTokens || 0);
             const timestamp = Number(record.timestamp || 0);
             const memo = record.memo || '';
             const sellerLower = SELLER_ACCOUNT.toLowerCase();
@@ -243,7 +277,7 @@
                 if (val.source !== 'RPC Market') continue;
                 const sameBuyer = !toUser || val.buyer === toUser;
                 const sameQty = Math.abs(val.quantity - qty) < 0.000001;
-                const sameTime = Math.abs(val.timestamp - timestamp) <= 60;
+                const sameTime = Math.abs(val.timestamp - timestamp) <= 120;
                 if (sameBuyer && sameQty && sameTime) {
                   isDuplicate = true;
                   break;
@@ -269,6 +303,7 @@
             }
           });
 
+          // Track traced balances per account
           const tracedByAccount = {};
           ledgerMap.forEach(trade => {
             if (trade.buyer && trade.buyer !== 'UNKNOWN') {
@@ -276,6 +311,71 @@
               tracedByAccount[trade.buyer] += trade.quantity;
             }
           });
+
+          // Identify holders with untraced balances and check their buyer history
+          // to resolve exact timestamps/prices when seller-side RPC/History lagged
+          const discrepantUsers = richList.filter(u => u.total > (tracedByAccount[u.account] || 0) + 0.000001);
+          
+          if (discrepantUsers.length > 0 && discrepantUsers.length <= 40) {
+            setLoadingMsg(`Cross-checking ${discrepantUsers.length} buyer account histories for unindexed sells...`);
+            await Promise.all(discrepantUsers.map(async (user) => {
+              const buyerRecords = await fetchBuyerHistoryFallback(user.account);
+              buyerRecords.forEach((rec, bIdx) => {
+                const bOp = String(rec.operation || '').toLowerCase();
+                if (bOp === 'market_buy' || bOp.includes('buy')) {
+                  const bQty = parseFloat(rec.quantity || rec.amount || rec.quantityTokens || 0);
+                  const bPrice = parseFloat(rec.price || TRANCHE_1_PRICE);
+                  const bTs = Number(rec.timestamp || 0);
+                  if (bQty <= 0) return;
+
+                  let matchedUnknown = null;
+                  let alreadyExists = false;
+                  for (let [k, val] of ledgerMap.entries()) {
+                    const sameQty = Math.abs(val.quantity - bQty) < 0.000001;
+                    const sameTime = Math.abs(val.timestamp - bTs) <= 120;
+                    if (sameQty && sameTime) {
+                      if (val.buyer === user.account) {
+                        alreadyExists = true;
+                        break;
+                      }
+                      if (val.buyer === 'UNKNOWN') {
+                        matchedUnknown = k;
+                      }
+                    }
+                  }
+
+                  if (!alreadyExists) {
+                    if (matchedUnknown) {
+                      const existing = ledgerMap.get(matchedUnknown);
+                      ledgerMap.set(matchedUnknown, {
+                        ...existing,
+                        buyer: user.account,
+                        price: bPrice || existing.price,
+                        totalHive: bQty * (bPrice || existing.price),
+                        memo: 'Order Book Match (Buyer Verified)'
+                      });
+                    } else {
+                      const key = `BUYER_${user.account}_${bQty.toFixed(6)}_${bTs}_${bIdx}`;
+                      ledgerMap.set(key, {
+                        id: key,
+                        date: new Date(bTs * 1000).toLocaleString(),
+                        timestamp: bTs,
+                        type: 'BUY (HIST)',
+                        buyer: user.account,
+                        seller: SELLER_ACCOUNT,
+                        quantity: bQty,
+                        price: bPrice,
+                        totalHive: bQty * bPrice,
+                        source: 'Buyer History Node',
+                        memo: 'Order Book Fill (Buyer Verified)'
+                      });
+                    }
+                    tracedByAccount[user.account] = (tracedByAccount[user.account] || 0) + bQty;
+                  }
+                }
+              });
+            }));
+          }
 
           let totalReconstructed = 0;
           
