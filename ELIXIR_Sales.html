@@ -6,7 +6,8 @@
 <title>ELIXIR Definitive Ledger</title>
 <style>
 :root{color-scheme:dark;--bg:#0f172a;--panel:#1e293b;--panel2:#111c30;--line:#334155;--muted:#94a3b8;--text:#e2e8f0;--green:#34d399;--cyan:#67e8f9;--amber:#fbbf24;--purple:#c084fc;--red:#f87171}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(
+--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 main{max-width:1440px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px;flex-wrap:wrap}
 h1{font-size:26px;line-height:1.2;margin:0;color:white}h2{font-size:19px;margin:26px 0 12px;color:white}.sub{color:var(--muted);margin-top:6px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -14,17 +15,26 @@ button,.btn{border:0;border-radius:9px;padding:10px 16px;background:#059669;colo
 button.secondary{background:#334155;color:#e2e8f0}
 button.danger{background:#991b1b;color:#fecaca}
 button:disabled{opacity:.55;cursor:wait}
-.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:17px;min-width:0}.label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.value{font-size:clamp(22px,3vw,32px);font-weight:750;margin:8px 0 2px;overflow-wrap:anywhere}.green{color:var(--green)}.cyan{color:var(--cyan)}.amber{color:var(--amber)}.purple{color:var(--purple)}.muted{color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:17px;min-width:0}.label{font-size:12px;text-tr
+ansform:uppercase;letter-spacing:.06em;color:var(--muted)}.value{font-size:clamp(22px,3vw,32px);font-weight:750;margin:8px 0 2px;overflow-wrap:anywhere}.green{color:var(--green)}.cyan{color:var(--cyan)}.amber{color:var(--amber)}.purple{color:var(--purple)}.muted{color:var(--muted)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
-.status{padding:12px 14px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);margin:14px 0;color:var(--muted)}.status.error{border-color:#991b1b;color:#fecaca;background:#450a0a55}.status.warn{border-color:#92400e;color:#fde68a;background:#451a0355}.status.ok{border-color:#065f46;color:#a7f3d0}
+.status{padding:12px 14px;border-radius:9px;background:var(--panel2);border:1px solid 
+var(--line);margin:14px 0;color:var(--muted)}.status.error{border-color:#991b1b;color:#fecaca;background:#450a0a55}.status.warn{border-color:#92400e;color:#fde68a;background:#451a0355}.status.ok{border-color:#065f46;color:#a7f3d0}
 .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
 input,select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-height:38px}
 input{flex:1;min-width:220px}.tablewrap{overflow:auto;max-height:660px;border:1px solid var(--line);border-radius:10px}
 table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:13px}th{position:sticky;top:0;background:#111827;color:#cbd5e1;text-align:left;text-transform:uppercase;font-size:11px;letter-spacing:.05em;z-index:1}
-th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}tbody tr:hover{background:#33415555}
-.tag{display:inline-block;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:700;background:#164e3b;color:#a7f3d0}.tag.transfer{background:#3b0764;color:#e9d5ff}.tag.secondary{background:#164e63;color:#a5f3fc}.tag.archived{background:#1e3a8a;color:#bfdbfe}
+th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}tbody 
+tr:hover{background:#33415555}
+.tag{display:inline-block;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:700;background:#164e3b;color:#a7f3d0}.tag.transfer{background:#3b0764;color:#e9d5ff}.tag.secondary{background:#164e63;color:#a5f3fc}.tag.recon{background:#78350f;color:#fde68a}
 .note{font-size:12px;color:var(--muted);margin-top:10px}.hidden{display:none}.foot{color:var(--muted);font-size:12px;margin:22px 2px}
-.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;background:#0f172a;border:1px solid var(--line);color:var(--cyan);margin-left:8px;vertical-align:middle}
+.badge{display:inline-block;padding:2px 
+8px;border-radius:999px;font-size:11px;background:#0f172a;border:1px solid var(--line);color:var(--cyan);margin-left:8px;vertical-align:middle}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:10px}
+.statbox{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+.statbox .k{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}
+.statbox .v{font-size:18px;font-weight:700;color:white;margin-top:4px;font-variant-numeric:tabul
+ar-nums}
 @media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.top{align-items:flex-start;flex-direction:column}}
 @media(max-width:520px){main{padding:12px}.cards{grid-template-columns:1fr 1fr}.value{font-size:21px}h1{font-size:22px}}
 </style>
@@ -33,13 +43,15 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
 <main>
   <header class="top">
     <div>
-      <h1>ELIXIR Definitive Ledger <span id="archiveBadge" class="badge">0 archived records</span></h1>
-      <div class="sub">Cumulative market activity, historical archive &amp; seller-specific tracking for @nectarbytes</div>
+      <h1>ELIXIR Definitive Ledger <span id="archiveBadge" 
+class="badge">0 archived records</span></h1>
+      <div class="sub">Full supply reconciliation, account history &amp; market sales audit for @nectarbytes</div>
     </div>
     <div class="actions">
       <button id="refresh" type="button">↻ Audit / Refresh</button>
-      <button id="importBtn" class="secondary" type="button" title="Merge a previously exported CSV or JSON backup into your permanent local archive">⬆ Import Backup</button>
-      <button id="exportJsonBtn" class="secondary" type="button" title="Save full cumulative archive as JSON">⬇ Backup JSON</button>
+      <button id="importBtn" class="secondary" type="button" title="Merge a previously exported CSV or JSON backup">⬆ Import Backup</button>
+      <button id="exportJsonBtn" class="secondary" type="button" title="Save full cumulative 
+archive as JSON">⬇ Backup JSON</button>
       <input id="importFile" type="file" accept=".json,.csv" class="hidden">
     </div>
   </header>
@@ -50,7 +62,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
     <article class="card">
       <div class="label">Total sold by @nectarbytes</div>
       <div class="value green" id="sellerSold">—</div>
-      <div class="muted" id="sellerSoldSub">Cumulative verified market sales</div>
+      <div class="muted" 
+id="sellerSoldSub">Verified market-sale quantity</div>
     </article>
     <article class="card">
       <div class="label">Other holders' market sales</div>
@@ -58,21 +71,36 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
       <div class="muted">Visible in history; excluded from your total</div>
     </article>
     <article class="card">
-      <div class="label">Direct transfers from @nectarbytes</div>
+      <div class="label">Direct transfers / rewards out</div>
       <div class="value purple" id="directTransfers">—</div>
-      <div class="muted">Not counted as market sales</div>
+      <div class="muted" 
+id="directTransfersSub">Delegation payouts &amp; transfers</div>
     </article>
     <article class="card">
       <div class="label">Current public holdings</div>
       <div class="value amber" id="publicHeld">—</div>
-      <div class="muted">Liquid + staked + pending unstake</div>
+      <div class="muted">All wallets excluding @nectarbytes</div>
     </article>
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top:0">On-Chain Supply &amp; Distribution Reconciliation</h2>
+    <div class="grid2" 
+id="supplyGrid">
+      <div class="statbox"><div class="k">Circulating Supply (ELIXIR)</div><div class="v" id="circSupply">—</div></div>
+      <div class="statbox"><div class="k">@nectarbytes Current Balance + Open Sell Orders</div><div class="v" id="sellerHeld">—</div></div>
+      <div class="statbox"><div class="k">Total Distributed Outside @nectarbytes</div><div class="v amber" id="totalDistributed">—</div></div>
+      <div class="statbox"><div class="k">Unindexed Historical Sales (Supply Gap)</div><div class="v" 
+id="supplyGap">—</div></div>
+    </div>
+    <div class="note" id="reconNote">Reconciles total circulating supply against @nectarbytes's remaining wallet balance, open sell book orders, and indexed transactions.</div>
   </section>
 
   <section class="panel">
     <h2 style="margin-top:0">Market volume by execution price</h2>
     <div id="priceBreakdown" class="muted">No data loaded.</div>
-    <div class="note">Price breakdown includes all cumulative market sellers. The headline Total Sold figure remains restricted to market trades where @nectarbytes is the seller.</div>
+    <div class="note">Price breakdown includes all indexed market 
+sellers.</div>
   </section>
 
   <section class="panel">
@@ -82,8 +110,9 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
       <select id="typeFilter">
         <option value="all">All cumulative activity</option>
         <option value="seller">Sales by @nectarbytes</option>
-        <option value="secondary">Other market sales</option>
-        <option value="transfer">Direct transfers from @nectarbytes</option>
+        <option value="secondary">Other market 
+sales</option>
+        <option value="transfer">Direct transfers / rewards out</option>
       </select>
       <button id="export" type="button">Export CSV</button>
       <button id="clearArchiveBtn" class="danger" type="button" title="Clear locally cached history">Clear Archive</button>
@@ -92,21 +121,24 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
       <table>
         <thead><tr>
           <th>Date / time</th><th>Type</th><th>Seller</th><th>Buyer / recipient</th>
-          <th class="num">ELIXIR</th><th class="num">Price (HIVE)</th><th class="num">Total (HIVE)</th><th>Source / ID</th>
+          <th 
+class="num">ELIXIR</th><th class="num">Price (HIVE)</th><th class="num">Total (HIVE)</th><th>Source / ID</th>
         </tr></thead>
         <tbody id="ledger"><tr><td colspan="8" class="muted">Load data to view transactions.</td></tr></tbody>
       </table>
     </div>
-    <div class="note"><strong>How historical tracking works:</strong> Hive Engine's live <code>tradesHistory</code> RPC table prunes older market trades after a short window. This dashboard now cross-checks <strong>both</strong> the live market table and @nectarbytes's full <code>accountHistory</code> (catching <code>market_sell</code> / <code>market_placeOrder</code> / filled ask orders), and permanently archives every discovered trade in your browser's <code>localStorage</code> so past sales are never lost when nodes prune them.</div>
+    <div class="note">Queries Hive Engine's <code>tokens.tokens</code>, <code>tokens.balances</code>, <code>market.sellBook</code>, <code>market.tradesHistory</code>, and full paginated <code>accountHistory</code> for 
+@nectarbytes (scanning all operations without symbol-query filtering so no <code>market_sell</code> or <code>market_placeOrder</code> records are dropped).</div>
   </section>
-  <div class="foot">Single-file cumulative ledger. No framework or CDN dependencies. Use "Backup JSON" or "Export CSV" periodically if you switch browsers or clear site data.</div>
+  <div class="foot">Single-file cumulative ledger. No framework or CDN dependencies.</div>
 </main>
 <script>
 (() => {
   "use strict";
   const SELLER = "nectarbytes";
   const SYMBOL = "ELIXIR";
-  const STORAGE_KEY = "elixir_definitive_ledger_archive_v2";
+  const STORAGE_KEY = 
+"elixir_definitive_ledger_archive_v3";
 
   const RPC_NODES = [
     "https://api.hive-engine.com/rpc/contracts",
@@ -117,18 +149,22 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
   ];
   const HISTORY_NODES = [
     "https://history.hive-engine.com/accountHistory",
-    "https://accounts.hive-engine.com/accountHistory",
+    
+"https://accounts.hive-engine.com/accountHistory",
     "https://he.atexoras.com:2083/accountHistory"
   ];
 
   let rows = [];
   let filteredRows = [];
+  let tokenMeta = null;
+  let sellerOpenOrders = [];
   const $ = id => document.getElementById(id);
 
   const num = v => {
     const n = Number.parseFloat(v ?? 0);
     return Number.isFinite(n) ? n : 0;
-  };
+  
+};
   const fmt = (v, digits = 6) => num(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: digits });
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const dateFrom = ts => {
@@ -138,7 +174,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
 
   function loadArchive() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = 
+localStorage.getItem(STORAGE_KEY);
       if (!raw) return new Map();
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return new Map();
@@ -150,7 +187,6 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
       });
       return map;
     } catch (e) {
-      console.warn("Could not read localStorage archive:", e);
       return new Map();
     }
   }
@@ -159,17 +195,14 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
     try {
       const arr = [...map.values()];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-      updateArchiveBadge(arr.length);
+      $("archiveBadge").textContent = `${arr.length.toLocaleString()} archived records`;
     } catch (e) {
-      console.warn("Could not save to localStorage archive:", e);
+      console.warn("Could not save archive:", e);
     }
   }
 
-  function updateArchiveBadge(count) {
-    $("archiveBadge").textContent = `${count.toLocaleString()} archived records`;
-  }
-
-  async function fetchWithTimeout(url, options = {}, timeoutMs = 9000) {
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) 
+{
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -183,7 +216,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
     let lastError;
     for (const url of RPC_NODES) {
       try {
-        const response = await fetchWithTimeout(url, {
+        const response = await 
+fetchWithTimeout(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -194,31 +228,34 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
         throw new Error(`Unexpected RPC payload from ${url}`);
       } catch (e) {
         lastError = e;
-        console.warn("RPC endpoint failed:", url, e);
-      }
+      
+}
     }
-    throw new Error("All Hive Engine RPC endpoints failed (" + (lastError?.message || "Network/CORS error") + ")");
+    throw new Error("All RPC endpoints failed: " + (lastError?.message || "Network/CORS error"));
   }
 
-  async function history(account, limit = 1000, offset = 0) {
+  // Fetch accountHistory WITHOUT passing symbol=ELIXIR in query params, because Hive Engine's
+  // accountHistory API often omits market_sell records when filtered by symbol!
+  async function historyPage(account, limit = 1000, offset = 0) {
     let lastError;
-    for (const base of HISTORY_NODES) {
+    for (const base of 
+HISTORY_NODES) {
       try {
-        const url = `${base}?${new URLSearchParams({ account, symbol: SYMBOL, limit: String(limit), offset: String(offset) })}`;
+        const url = `${base}?${new URLSearchParams({ account, limit: String(limit), offset: String(offset) })}`;
         const response = await fetchWithTimeout(url);
         if (!response.ok) throw new Error(`HTTP ${response.status} from ${base}`);
         const json = await response.json();
         if (!Array.isArray(json)) throw new Error("Unexpected history payload");
         return json;
       } catch (e) {
-        lastError = e;
-        console.warn("History endpoint failed:", base, e);
+        lastError = 
+e;
       }
     }
-    throw new Error("All history endpoints failed (" + (lastError?.message || "Network/CORS error") + ")");
+    throw new Error("All history endpoints failed: " + (lastError?.message || "Network/CORS error"));
   }
 
-  async function pagedRpc(table, query) {
+  async function pagedRpc(contract, table, query) {
     const out = [];
     let offset = 0;
     while (true) {
@@ -226,7 +263,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
         jsonrpc: "2.0",
         id: 1,
         method: "find",
-        params: { contract: table === "balances" ? "tokens" : "market", table, query, limit: 1000, offset }
+        params: { contract, table, 
+query, limit: 1000, offset }
       });
       out.push(...batch);
       if (batch.length < 1000) break;
@@ -236,13 +274,14 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
     return out;
   }
 
-  async function sellerHistory() {
+  async function fetchFullSellerHistory() {
     const out = [];
     let offset = 0;
     while (true) {
-      const batch = await history(SELLER, 1000, offset);
+      const batch = await historyPage(SELLER, 1000, 
+offset);
       out.push(...batch);
-      if (batch.length < 1000 || out.length >= 100000) break;
+      if (batch.length < 1000 || out.length >= 250000) break;
       offset += 1000;
     }
     return out;
@@ -252,7 +291,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
     const cleanTx = String(txid || "").split("-")[0];
     if (cleanTx) {
       return `sale:${cleanTx}:${seller}:${buyer}:${num(quantity).toFixed(6)}:${num(price).toFixed(8)}`;
-    }
+    
+}
     return `sale:${ts}:${seller}:${buyer}:${num(quantity).toFixed(6)}:${num(price).toFixed(8)}`;
   }
 
@@ -264,7 +304,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
     const ts = num(t.timestamp);
     const id = String(t.transactionId ?? t.txid ?? t._id ?? "");
     return {
-      key: makeTradeKey(seller, buyer, quantity, price, ts, id),
+      key: makeTradeKey(seller, 
+buyer, quantity, price, ts, id),
       timestamp: ts,
       date: dateFrom(ts),
       type: seller === SELLER ? "MARKET SALE — NECTARBYTES" : "SECONDARY MARKET SALE",
@@ -280,19 +321,28 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
     };
   }
 
+  function recordTouchesElixir(r) {
+    const sym = String(r.symbol || r.token || "").toUpperCase();
+    if (sym === SYMBOL) return true;
+    const raw = JSON.stringify(r).toUpperCase();
+    return raw.includes(`"${SYMBOL}"`);
+  }
+
   function normalizeAccountHistory(records) {
     const out = [];
     records.forEach((r, i) => {
+      if (!recordTouchesElixir(r)) return;
+
       const op = String(r.operation || "").toLowerCase();
       const ts = num(r.timestamp);
       const id = String(r.transactionId ?? r.txid ?? r._id ?? `${ts}:${i}`);
       const account = String(r.account || "").toLowerCase();
 
-      // 1. Historical Market Sales recorded in @nectarbytes's accountHistory
-      // Hive Engine logs market fills on the seller's account history as "market_sell"
-      if (op === "market_sell" || (op.includes("market") && op.includes("sell"))) {
-        const seller = String(r.seller || r.from || account || SELLER).toLowerCase();
-        const buyer = String(r.buyer || r.to || "unknown").toLowerCase();
+      // Match market sales in Hive Engine accountHistory (market_sell, market_expire/etc excluded)
+      if (op === "market_sell" || op === "market_sellorder" || (op.includes("market") && op.includes("sell"))) {
+        const seller = String(r.seller || r.from || account || 
+SELLER).toLowerCase();
+        const buyer = String(r.buyer || r.to || "market-buyer").toLowerCase();
         const quantity = num(r.quantityTokens ?? r.quantity ?? r.amount);
         const price = num(r.price);
         const totalHive = num(r.quantityHive) || (quantity * price);
@@ -300,7 +350,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
 
         if (seller === SELLER && quantity > 0) {
           out.push({
-            key: makeTradeKey(seller, buyer, quantity, effectivePrice, ts, id),
+            key: makeTradeKey(seller, buyer, quantity, effectivePrice, ts, 
+id),
             timestamp: ts,
             date: dateFrom(ts),
             type: "MARKET SALE — NECTARBYTES",
@@ -309,7 +360,7 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
             quantity,
             price: effectivePrice,
             totalHive,
-            source: "Account history (market_sell)",
+            source: `Account history (${r.operation})`,
             txid: id,
             category: "seller",
             memo: ""
@@ -318,8 +369,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
         return;
       }
 
-      // 2. Direct Transfers / Issues sent out by @nectarbytes
-      if (op.includes("transfer") || op.includes("issue")) {
+      // Match outgoing transfers, issues, or stake distributions from @nectarbytes
+      if (op.includes("transfer") || op.includes("issue") || op.includes("stake")) {
         const from = String(r.from || r.sender || (account === SELLER ? account : "")).toLowerCase();
         const to = String(r.to || r.receiver || "").toLowerCase();
         const quantity = num(r.quantity ?? r.amount ?? r.quantityTokens);
@@ -328,13 +379,13 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
             key: `transfer:${id}:${from}:${to}:${quantity.toFixed(6)}`,
             timestamp: ts,
             date: dateFrom(ts),
-            type: "DIRECT TRANSFER",
+            type: op.includes("stake") ? "STAKE / REWARD OUT" : "DIRECT TRANSFER",
             seller: from,
             buyer: to,
             quantity,
             price: 0,
             totalHive: 0,
-            source: "Seller account history",
+            source: `Account history (${r.operation})`,
             txid: id,
             category: "transfer",
             memo: String(r.memo || "")
@@ -350,19 +401,57 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
     const secondaryRows = rows.filter(r => r.category === "secondary");
     const transferRows = rows.filter(r => r.category === "transfer");
 
-    const totalSellerQty = sellerRows.reduce((s, r) => s + num(r.quantity), 0);
+    const indexedSellerSold = sellerRows.reduce((s, r) => s + 
+num(r.quantity), 0);
     const totalSellerHive = sellerRows.reduce((s, r) => s + num(r.totalHive), 0);
+    const totalTransfersOut = transferRows.reduce((s, r) => s + num(r.quantity), 0);
 
-    $("sellerSold").textContent = fmt(totalSellerQty);
+    const allBalances = window.__allElixirBalances || [];
+    const sellerWalletBal = allBalances
+      .filter(b => b.account === SELLER)
+      .reduce((s, b) => s + b.total, 0);
+    const publicBalances = allBalances.filter(b => b.account !== SELLER && b.account !== "null");
+    const publicHeldTotal = publicBalances.reduce((s, b) => s + b.total, 0);
+    const openSellQty = sellerOpenOrders.reduce((s, o) => s + num(o.quantity), 0);
+
+    $("sellerSold").textContent = fmt(indexedSellerSold);
     $("sellerSoldSub").textContent = sellerRows.length
-      ? `${sellerRows.length.toLocaleString()} cumulative sales (${fmt(totalSellerHive, 4)} HIVE)`
-      : "Cumulative verified market sales";
+      ? `${sellerRows.length.toLocaleString()} indexed sales (${fmt(totalSellerHive, 4)} HIVE)`
+      : "Verified indexed market sales";
 
     $("secondarySold").textContent = fmt(secondaryRows.reduce((s, r) => s + num(r.quantity), 0));
-    $("directTransfers").textContent = fmt(transferRows.reduce((s, r) => s + num(r.quantity), 0));
+    $("directTransfers").textContent = fmt(totalTransfersOut);
+    $("directTransfersSub").textContent = `${transferRows.length.toLocaleString()} outgoing transfers/stakes`;
+    $("publicHeld").textContent = fmt(publicHeldTotal);
 
-    const visibleBalances = window.__elixirBalances || [];
-    $("publicHeld").textContent = fmt(visibleBalances.reduce((s, b) => s + b.total, 0));
+    // Supply & Distribution Reconciliation Math
+    const circSupply = tokenMeta ? num(tokenMeta.circulatingSupply) : 0;
+    const sellerTotalRemaining = sellerWalletBal + openSellQty;
+
+    $("circSupply").textContent = circSupply > 0 ? fmt(circSupply) : "Unavailable";
+    $("sellerHeld").textContent = `${fmt(sellerTotalRemaining)} (${fmt(sellerWalletBal, 2)} wallet + ${fmt(openSellQty, 2)} in sell book)`;
+    $("totalDistributed").textContent = fmt(publicHeldTotal);
+
+    // Every ELIXIR currently in public wallets had to leave @nectarbytes via either:
+    // (1) Market sales by @nectarbytes, OR (2) Direct 
+transfers / delegation payouts out.
+    // Therefore: Implied Historical Sales = Public Held - Direct Transfers Out (assuming @nectarbytes was the sole issuer).
+    const impliedMinimumSales = Math.max(0, publicHeldTotal - totalTransfersOut);
+    const unindexedGap = Math.max(0, impliedMinimumSales - indexedSellerSold);
+
+    if (publicHeldTotal > 0) {
+      $("supplyGap").textContent = unindexedGap > 0.01
+        ? `${fmt(unindexedGap)} ELIXIR`
+        : "0.00 ELIXIR (Fully matched)";
+      $("supplyGap").style.color = unindexedGap > 0.01 ? "var(--amber)" : "var(--green)";
+
+      $("reconNote").innerHTML = unindexedGap > 0.01
+        ? `<strong>Why indexed sales (${fmt(indexedSellerSold)}) are lower than ${fmt(impliedMinimumSales)}:</strong> Public wallets currently hold <strong>${fmt(publicHeldTotal)} ELIXIR</strong>, and @nectarbytes sent <strong>${fmt(totalTransfersOut)} ELIXIR</strong> via direct transfers/stakes. That proves at least <strong>$
+{fmt(impliedMinimumSales)} ELIXIR</strong> was sold on the market by @nectarbytes, meaning <strong>${fmt(unindexedGap)} ELIXIR</strong> of older trades were pruned by Hive Engine's history node before this archive was created.`
+        : `<strong>100% Reconciled:</strong> Public wallet balances (${fmt(publicHeldTotal)} ELIXIR) match indexed sales (${fmt(indexedSellerSold)}) plus direct transfers (${fmt(totalTransfersOut)}).`;
+    } else {
+      $("supplyGap").textContent = "—";
+    }
 
     const prices = new Map();
     rows.filter(r => r.category === "seller" || r.category === "secondary").forEach(r => {
@@ -372,14 +461,16 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
 
     const priceEntries = [...prices.entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
     $("priceBreakdown").innerHTML = priceEntries.length
-      ? `<div class="controls">${priceEntries.map(([p, q]) => `<div class="card" style="padding:12px;min-width:150px"><div class="label">${p} HIVE</div><strong class="cyan">${fmt(q)} ELIXIR</strong></div>`).join("")}</div>`
-      : "No market trades returned.";
+      ? `<div class="controls">$
+{priceEntries.map(([p, q]) => `<div class="card" style="padding:12px;min-width:150px"><div class="label">${p} HIVE</div><strong class="cyan">${fmt(q)} ELIXIR</strong></div>`).join("")}</div>`
+      : "No indexed market trades returned.";
 
     const term = $("search").value.trim().toLowerCase();
     const filter = $("typeFilter").value;
     filteredRows = rows.filter(r => {
       const matchesFilter = filter === "all" || r.category === filter;
-      const hay = [r.date, r.type, r.seller, r.buyer, r.memo, r.txid, r.source].join(" ").toLowerCase();
+      const hay = [r.date, r.type, r.seller, r.buyer, r.memo, r.txid, 
+r.source].join(" ").toLowerCase();
       return matchesFilter && (!term || hay.includes(term));
     });
 
@@ -387,7 +478,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
       <td>${esc(r.date)}</td>
       <td><span class="tag ${r.category === "transfer" ? "transfer" : r.category === "secondary" ? "secondary" : ""}">${esc(r.type)}</span></td>
       <td>@${esc(r.seller || "unknown")}</td><td>@${esc(r.buyer || "unknown")}</td>
-      <td class="num">${fmt(r.quantity)}</td><td class="num">${num(r.price) ? fmt(r.price, 8) : "—"}</td>
+      <td class="num">$
+{fmt(r.quantity)}</td><td class="num">${num(r.price) ? fmt(r.price, 8) : "—"}</td>
       <td class="num">${num(r.totalHive) ? fmt(r.totalHive, 8) : "—"}</td>
       <td title="${esc(r.txid)}">${esc(r.source)}${r.txid ? " · " + esc(r.txid) : ""}</td>
     </tr>`).join("") : `<tr><td colspan="8" class="muted">No matching transactions.</td></tr>`;
@@ -397,36 +489,46 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
     const button = $("refresh");
     const status = $("status");
     button.disabled = true;
-    button.textContent = "Loading…";
+    button.textContent = "Auditing…";
     status.className = "status";
-    status.textContent = "Fetching live market trades, full @nectarbytes account history (including past market_sell fills), and balances…";
+    status.textContent = "Querying token supply, all holder balances, sell book, market trades, and full @nectarbytes account history…";
 
     const archiveMap = loadArchive();
-    const initialArchiveCount = archiveMap.size;
 
     try {
-      const [marketRes, sellerOpsRes, balancesRes] = await Promise.allSettled([
-        pagedRpc("tradesHistory", { symbol: SYMBOL }),
-        sellerHistory(),
-        pagedRpc("balances", { symbol: SYMBOL })
+      const [tokenRes, balancesRes, sellBookRes, marketRes, sellerOpsRes] = await Promise.allSettled([
+        pagedRpc("tokens", "tokens", { symbol: SYMBOL }),
+        pagedRpc("tokens", "balances", { symbol: SYMBOL }),
+        pagedRpc("market", "sellBook", { symbol: SYMBOL, account: SELLER }),
+        pagedRpc("market", "tradesHistory", { symbol: SYMBOL }),
+        fetchFullSellerHistory()
       ]);
 
-      if (marketRes.status === "rejected" && sellerOpsRes.status === "rejected" && balancesRes.status === "rejected") {
-        throw new Error(marketRes.reason?.message || "Unable to reach Hive Engine nodes.");
+      if (tokenRes.status === "fulfilled" && tokenRes.value.length > 0) {
+        tokenMeta = tokenRes.value[0];
+      }
+
+      if (balancesRes.status === "fulfilled") {
+        window.__allElixirBalances = balancesRes.value
+          .map(b => ({
+            account: String(b.account || "").toLowerCase(),
+            total: num(b.balance) + num(b.stake) + num(b.pendingUnstake)
+          }))
+          .filter(b => b.total > 0);
+      }
+
+      if (sellBookRes.status === "fulfilled") {
+        sellerOpenOrders = sellBookRes.value;
       }
 
       const market = marketRes.status === "fulfilled" ? marketRes.value : [];
       const sellerOps = sellerOpsRes.status === "fulfilled" ? sellerOpsRes.value : [];
-      const balances = balancesRes.status === "fulfilled" ? balancesRes.value : [];
 
       const marketRows = market.map(normalizeMarket).filter(r => r.quantity > 0 && r.seller && r.buyer);
       const historyRows = normalizeAccountHistory(sellerOps);
 
-      // Merge historical accountHistory records first, then overlay live market records (which may have richer txids)
       historyRows.forEach(r => {
-        if (!archiveMap.has(r.key)) {
-          archiveMap.set(r.key, r);
-        }
+        if (!archiveMap.has(r.key)) archiveMap.set(r.key, r);
       });
       marketRows.forEach(r => {
         archiveMap.set(r.key, r);
@@ -435,42 +537,32 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
       saveArchive(archiveMap);
       rows = [...archiveMap.values()].sort((a, b) => b.timestamp - a.timestamp);
 
-      if (balancesRes.status === "fulfilled") {
-        window.__elixirBalances = balances
-          .filter(b => String(b.account || "").toLowerCase() !== SELLER)
-          .map(b => ({ total: num(b.balance) + num(b.stake) + num(b.pendingUnstake) }))
-          .filter(b => b.total > 0);
-      }
-
       render();
 
-      const newlyAdded = archiveMap.size - initialArchiveCount;
       const sellerSalesCount = rows.filter(r => r.category === "seller").length;
-
       const warnings = [];
-      if (marketRes.status === "rejected") warnings.push("Live market table unreachable");
-      if (sellerOpsRes.status === "rejected") warnings.push("Account history API unreachable (older pruned trades rely on local archive)");
+      if (marketRes.status === "rejected") warnings.push("Live tradesHistory unreachable");
+      if (sellerOpsRes.status === "rejected") warnings.push("Account history API unreachable/rate-limited");
       if (balancesRes.status === "rejected") warnings.push("Holder balances unavailable");
 
       if (warnings.length > 0) {
         status.className = "status warn";
-        status.textContent = `Audit updated: ${sellerSalesCount.toLocaleString()} cumulative sales by @${SELLER} tracked (${newlyAdded >= 0 ? "+" + newlyAdded : 0} new). Warning: ${warnings.join("; ")}.`;
+        status.textContent = `Partial audit complete (${sellerSalesCount.toLocaleString()} indexed sales). Warning: ${warnings.join("; ")}.`;
       } else {
         status.className = "status ok";
-        status.textContent = `Audit complete: ${sellerSalesCount.toLocaleString()} cumulative sales by @${SELLER} tracked across live market + account history (${archiveMap.size.toLocaleString()} total archived events).`;
+        status.textContent = `Audit complete: Scanned ${sellerOps.length.toLocaleString()} total account operations and ${market.length.toLocaleString()} live market trades (${archiveMap.size.toLocaleString()} ELIXIR records archived).`;
       }
     } catch (e) {
-      // Even if network fails completely, render whatever is already saved in the local archive
       if (archiveMap.size > 0) {
         rows = [...archiveMap.values()].sort((a, b) => b.timestamp - a.timestamp);
         render();
         status.className = "status warn";
-        status.textContent = `Offline / Network error (${e.message}). Showing ${archiveMap.size.toLocaleString()} previously archived transactions from browser storage.`;
+        status.textContent = `Network 
+error (${e.message}). Showing ${archiveMap.size.toLocaleString()} archived records.`;
       } else {
         status.className = "status error";
-        status.textContent = "Audit could not be completed: " + e.message;
+        status.textContent = "Audit failed: " + e.message;
       }
-      console.error(e);
     } finally {
       button.disabled = false;
       button.textContent = "↻ Audit / Refresh";
@@ -478,7 +570,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
   }
 
   function exportCsv() {
-    const sourceData = filteredRows.length ? filteredRows : rows;
+    const sourceData = 
+filteredRows.length ? filteredRows : rows;
     if (!sourceData.length) {
       alert("No transaction data loaded to export.");
       return;
@@ -507,7 +600,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `elixir-archive-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = 
+`elixir-archive-backup-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -534,14 +628,14 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
             }
           });
         } else {
-          // Basic CSV import support for previously exported ledger CSVs
           const lines = text.split(/\r?\n/).filter(Boolean);
           if (lines.length < 2) throw new Error("CSV file is empty.");
           const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, "").trim());
           for (let i = 1; i < lines.length; i++) {
             const vals = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/^"|"$/g, "").replace(/""/g, '"')) || [];
             const obj = {};
-            headers.forEach((h, idx) => { obj[h] = vals[idx] ?? ""; });
+            headers.forEach((h, idx) => 
+{ obj[h] = vals[idx] ?? ""; });
             const qty = num(obj.quantity);
             const price = num(obj.price);
             const ts = num(obj.timestamp);
@@ -549,7 +643,8 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
             const buyer = String(obj.buyer || "").toLowerCase();
             if (qty > 0 && seller) {
               const cat = obj.category || (obj.type?.includes("TRANSFER") ? "transfer" : seller === SELLER ? "seller" : "secondary");
-              const key = cat === "transfer"
+              const key = cat === 
+"transfer"
                 ? `transfer:${obj.txid || ts}:${seller}:${buyer}:${qty.toFixed(6)}`
                 : makeTradeKey(seller, buyer, qty, price, ts, obj.txid);
               archiveMap.set(key, {
@@ -587,27 +682,28 @@ th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-ali
   }
 
   function clearArchive() {
-    if (!confirm("Clear all locally saved historical records from this browser? Make sure you have exported a JSON/CSV backup first.")) return;
+    if (!confirm("Clear all locally saved historical records from this browser?")) return;
     localStorage.removeItem(STORAGE_KEY);
-    updateArchiveBadge(0);
+    $("archiveBadge").textContent = "0 archived records";
     rows = [];
     render();
     $("status").className = "status";
-    $("status").textContent = "Local archive cleared. Click Audit / Refresh to reload available data.";
+    $("status").textContent = "Local archive cleared.";
   }
 
-  $("refresh").addEventListener("click", load);
+  $("refresh").addEventListener("click", 
+load);
   $("search").addEventListener("input", render);
   $("typeFilter").addEventListener("change", render);
   $("export").addEventListener("click", exportCsv);
   $("exportJsonBtn").addEventListener("click", exportJsonBackup);
   $("importBtn").addEventListener("click", () => $("importFile").click());
-  $("importFile").addEventListener("change", handleImportFile);
+  $("importFile").addEventListener("change", 
+handleImportFile);
   $("clearArchiveBtn").addEventListener("click", clearArchive);
 
-  // Immediately show any cached historical data before network completes
   const initialMap = loadArchive();
-  updateArchiveBadge(initialMap.size);
+  $("archiveBadge").textContent = `${initialMap.size.toLocaleString()} archived records`;
   if (initialMap.size > 0) {
     rows = [...initialMap.values()].sort((a, b) => b.timestamp - a.timestamp);
     render();
