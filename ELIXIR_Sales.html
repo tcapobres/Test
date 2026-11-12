@@ -35,7 +35,7 @@ tr:hover{background:#33415555}
 .statbox .k{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}
 .statbox .v{font-size:18px;font-weight:700;color:white;margin-top:4px;font-variant-numeric:tabul
 ar-nums}
-.diag{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;background:#090d16;border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px;max-height:130px;overflow:auto;color:#94a3b8;white-space:pre-wrap}
+.diag{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;background:#090d16;border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px;max-height:150px;overflow:auto;color:#94a3b8;white-space:pre-wrap}
 @media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.top{align-items:flex-start;flex-direction:column}}
 @media(max-width:520px){main{padding:12px}.cards{grid-template-columns:1fr 
 1fr}.value{font-size:21px}h1{font-size:22px}}
@@ -46,20 +46,20 @@ ar-nums}
   <header class="top">
     <div>
       <h1>ELIXIR Definitive Ledger <span id="archiveBadge" class="badge">0 archived records</span></h1>
-      <div class="sub">Progressive supply reconciliation, account history &amp; market sales audit for @nectarbytes</div>
+      <div class="sub">Direct Hive Layer-1 + Hive Engine Sidechain Audit for @nectarbytes</div>
     </div>
     <div class="actions">
-      <button id="refresh" 
-type="button">↻ Audit / Refresh</button>
+      <button id="refresh" type="button">↻ Audit / 
+Refresh</button>
       <button id="stopBtn" class="danger hidden" type="button">⏹ Stop Scan</button>
       <button id="importBtn" class="secondary" type="button" title="Merge a previously exported CSV or JSON backup">⬆ Import Backup</button>
       <button id="exportJsonBtn" class="secondary" type="button" title="Save full cumulative archive as JSON">⬇ Backup JSON</button>
       <input id="importFile" type="file" accept=".json,.csv" class="hidden">
-    
-</div>
-  </header>
+    </div>
+  
+</header>
 
-  <div id="status" class="status">Ready to connect to Hive Engine data sources.</div>
+  <div id="status" class="status">Ready to connect to Hive &amp; Hive Engine data sources.</div>
 
   <section class="cards">
     <article class="card">
@@ -93,7 +93,7 @@ holdings</div>
       <div class="statbox"><div 
 class="k">@nectarbytes Wallet + Open Sell Orders</div><div class="v" id="sellerHeld">—</div></div>
       <div class="statbox"><div class="k">Total Distributed Outside @nectarbytes</div><div class="v amber" id="totalDistributed">—</div></div>
-      <div class="statbox"><div class="k">Unindexed Historical Sales (Supply Gap)</div><div class="v" id="supplyGap">—</div></div>
+      <div class="statbox"><div class="k">Implied Net Market Sales (Supply Math)</div><div class="v green" id="impliedSales">—</div></div>
     </div>
     <div class="note" id="reconNote">Reconciles total circulating supply against @nectarbytes's remaining wallet 
 balance, open sell book orders, and indexed transactions.</div>
@@ -132,28 +132,41 @@ data to view transactions.</td></tr></tbody>
     </div>
     <div class="diag" id="diagLog">Diagnostic log ready.</div>
   </section>
-  <div class="foot">Single-file progressive ledger. No framework or CDN dependencies.</div>
+  <div class="foot">Single-file cumulative ledger. Queries Hive Engine RPCs + Hive Layer-1 (api.hive.blog / api.deathwing.me) fallback.</div>
 </main>
 <script>
 (() => {
   "use strict";
   const SELLER = "nectarbytes";
-  const SYMBOL = "ELIXIR";
-  const STORAGE_KEY = 
-"elixir_definitive_ledger_archive_v4";
+  const SYMBOL = 
+"ELIXIR";
+  const STORAGE_KEY = "elixir_definitive_ledger_archive_v5";
 
+  // Active 2026 Hive Engine RPC nodes (CORS-enabled)
   const RPC_NODES = [
     "https://api.hive-engine.com/rpc/contracts",
-    "https://enginerpc.com/contracts",
     "https://api2.hive-engine.com/rpc/contracts",
     "https://herpc.dtools.dev/contracts",
-    "https://api.primersion.com/contracts"
+    "https://enginerpc.com/contracts",
+    "https://he.atexoras.com:2083/contracts",
+    
+"https://api.primersion.com/contracts"
   ];
+
+  // Hive Engine accountHistory nodes
   const HISTORY_NODES = [
     "https://history.hive-engine.com/accountHistory",
-    
-"https://accounts.hive-engine.com/accountHistory",
+    "https://accounts.hive-engine.com/accountHistory",
     "https://he.atexoras.com:2083/accountHistory"
+  ];
+
+  // Direct Hive Layer-1 RPC nodes (100% CORS-open, stores every ssc-mainnet-hive custom_json op 
+ever broadcast)
+  const HIVE_L1_NODES = [
+    "https://api.hive.blog",
+    "https://api.deathwing.me",
+    "https://techcoderx.com",
+    "https://api.openhive.network"
   ];
 
   let rows = [];
@@ -162,25 +175,27 @@ data to view transactions.</td></tr></tbody>
   let sellerOpenOrders = [];
   let activeRpcUrl = null;
   let activeHistoryUrl = null;
+  let activeHiveL1Url = null;
   let stopRequested = false;
 
-  const $ = id => document.getElementById(id);
+  const $ = id => 
+document.getElementById(id);
 
-  function logDiag(msg) 
-{
+  function logDiag(msg) {
     const el = $("diagLog");
+    if (!el) return;
     const ts = new Date().toLocaleTimeString();
     el.textContent = `[${ts}] ${msg}
-` + el.textContent.slice(0, 4000);
+` + el.textContent.slice(0, 6000);
   }
 
   const num = v => {
     const n = Number.parseFloat(v ?? 0);
     return Number.isFinite(n) ? n : 0;
   };
-  const fmt = (v, digits = 6) => num(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: digits });
-  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": 
-"&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmt = (v, digits = 6) => num(v).toLocaleString(undefined, { minimumFractionDigits: 2, 
+maximumFractionDigits: digits });
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const dateFrom = ts => {
     const n = Number(ts || 0);
     return n > 0 ? new Date(n * 1000).toLocaleString() : "Unavailable";
@@ -190,10 +205,10 @@ data to view transactions.</td></tr></tbody>
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return new Map();
-      const parsed = JSON.parse(raw);
+      const parsed = 
+JSON.parse(raw);
       if (!Array.isArray(parsed)) return new Map();
-      const map = new 
-Map();
+      const map = new Map();
       parsed.forEach(item => {
         if (item && item.key && num(item.quantity) > 0) {
           map.set(item.key, item);
@@ -207,48 +222,49 @@ Map();
 
   function saveArchive(map) {
     try {
-      const arr = [...map.values()];
-      localStorage.setItem(STORAGE_KEY, 
-JSON.stringify(arr));
+      const arr = 
+[...map.values()];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
       $("archiveBadge").textContent = `${arr.length.toLocaleString()} archived records`;
     } catch (e) {
-      logDiag("Warning: localStorage quota full or blocked: " + e.message);
+      logDiag("Warning: localStorage save failed: " + e.message);
     }
   }
 
-  async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 9000) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try 
-{
+    const timer = setTimeout(() => 
+controller.abort(), timeoutMs);
+    try {
       return await fetch(url, { ...options, signal: controller.signal });
     } finally {
       clearTimeout(timer);
     }
   }
 
+  // Note: Omit custom headers on GET and use text/plain or standard JSON without extra headers to minimize CORS preflight blocks
   async function rpc(payload) {
     const candidates = activeRpcUrl
-      ? [activeRpcUrl, ...RPC_NODES.filter(u => u !== activeRpcUrl)]
+      ? [activeRpcUrl, ...RPC_NODES.filter(u => u !== 
+activeRpcUrl)]
       : RPC_NODES;
 
     let lastError;
     for (const url of candidates) {
-      try 
-{
+      try {
         const response = await fetchWithTimeout(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
-        }, 8000);
+        }, 9000);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const json = await response.json();
-        if (json && Array.isArray(json.result)) {
+        if (json && Array.isArray(json.result)) 
+{
           if (activeRpcUrl !== url) {
             activeRpcUrl = url;
-            logDiag(`Connected to RPC node: ${url}`);
-          
-}
+            logDiag(`Connected to Hive Engine RPC: ${url}`);
+          }
           return json.result;
         }
         throw new Error("Invalid RPC JSON structure");
@@ -257,11 +273,11 @@ JSON.stringify(arr));
         logDiag(`RPC failed (${url}): ${e.message}`);
       }
     }
-    throw new Error("All RPC nodes unreachable: " + (lastError?.message || "CORS/Network blocked"));
+    throw new Error("All Hive Engine RPC nodes failed: " + (lastError?.message || 
+"Network/CORS"));
   }
 
-  async function historyBatch(paramsObj) 
-{
+  async function historyBatch(paramsObj) {
     const candidates = activeHistoryUrl
       ? [activeHistoryUrl, ...HISTORY_NODES.filter(u => u !== activeHistoryUrl)]
       : HISTORY_NODES;
@@ -270,10 +286,10 @@ JSON.stringify(arr));
     for (const base of candidates) {
       try {
         const url = `${base}?${new URLSearchParams(paramsObj)}`;
-        const response = await fetchWithTimeout(url, {}, 8000);
+        const response = await fetchWithTimeout(url, {}, 
+9000);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const json = await 
-response.json();
+        const json = await response.json();
         if (Array.isArray(json)) {
           if (activeHistoryUrl !== base) {
             activeHistoryUrl = base;
@@ -284,12 +300,46 @@ response.json();
         throw new Error("Invalid History JSON array");
       } catch (e) {
         lastError = e;
-        logDiag(`History failed (${base}): ${e.message}`);
+        logDiag(`History failed (${base}): 
+${e.message}`);
       }
     }
-    throw new Error("All History nodes unreachable: " + 
-(lastError?.message || "CORS/Network blocked"));
+    throw new Error("All History nodes failed: " + (lastError?.message || "Network/CORS"));
   }
+
+  async function hiveL1Call(method, params) {
+    const candidates = activeHiveL1Url
+      ? [activeHiveL1Url, ...HIVE_L1_NODES.filter(u => u !== activeHiveL1Url)]
+      : HIVE_L1_NODES;
+
+    let 
+lastError;
+    for (const url of candidates) {
+      try {
+        const response = await fetchWithTimeout(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params })
+        }, 9000);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const json = await response.json();
+        if (json && json.result !== undefined) {
+          if (activeHiveL1Url !== url) {
+            activeHiveL1Url = 
+url;
+            logDiag(`Connected to Hive L1 node: ${url}`);
+          }
+          return json.result;
+        }
+        throw new Error("Invalid Hive L1 JSON structure");
+      } catch (e) {
+        lastError = e;
+        logDiag(`Hive L1 failed (${url}): ${e.message}`);
+      }
+    }
+    throw new Error("All Hive L1 nodes failed: " + (lastError?.message || "Network error"));
+  
+}
 
   async function pagedRpc(contract, table, query, onProgress) {
     const out = [];
@@ -302,10 +352,10 @@ response.json();
         params: { contract, table, query, limit: 1000, offset }
       });
       out.push(...batch);
-      if (onProgress) 
-onProgress(out.length);
+      if (onProgress) onProgress(out.length);
       if (batch.length < 1000) break;
-      offset += 1000;
+      offset += 
+1000;
       if (offset > 200000) break;
     }
     return out;
@@ -420,23 +470,75 @@ r.sender || (account === SELLER ? account : "")).toLowerCase();
     return out;
   }
 
+  // Fallback parser for Hive Layer-1 ssc-mainnet-hive custom_json 
+operations on @nectarbytes
+  function parseHiveL1CustomJson(historyItems) {
+    const out = [];
+    for (const [idx, entry] of historyItems) {
+      const op = entry.op;
+      if (!Array.isArray(op) || op[0] !== "custom_json") continue;
+      const body = op[1] || {};
+      if (body.id !== "ssc-mainnet-hive") continue;
+
+      let actions = [];
+      try {
+        const parsed = JSON.parse(body.json);
+        actions = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        continue;
+      }
+
+      const ts = entry.timestamp ? Math.floor(new Date(entry.timestamp + "Z").getTime() / 1000) : 0;
+      const trxId = entry.trx_id || `l1-${idx}`;
+
+      for (const act of actions) {
+        const payload = act.contractPayload || {};
+        if (String(payload.symbol || 
+"").toUpperCase() !== SYMBOL) continue;
+
+        if (act.contractName === "tokens" && (act.contractAction === "transfer" || act.contractAction === "issue" || act.contractAction === "stake")) {
+          const to = String(payload.to || "").toLowerCase();
+          const qty = num(payload.quantity);
+          if (to && to !== SELLER && qty > 0) {
+            out.push({
+              key: `transfer:${trxId}:${SELLER}:${to}:${qty.toFixed(6)}`,
+              timestamp: ts,
+              date: dateFrom(ts),
+              type: act.contractAction === "stake" ? "STAKE / REWARD OUT" : "DIRECT TRANSFER",
+              seller: SELLER,
+              buyer: to,
+              quantity: qty,
+              price: 0,
+              totalHive: 0,
+              source: `Hive L1 (${act.contractAction})`,
+              txid: trxId,
+              category: "transfer",
+              memo: String(payload.memo || "")
+            });
+          }
+        }
+      }
+    }
+    return out;
+  }
+
   function render() {
-    const sellerRows = rows.filter(r 
-=> r.category === "seller");
+    const sellerRows = rows.filter(r => r.category === "seller");
     const secondaryRows = rows.filter(r => r.category === "secondary");
     const transferRows = rows.filter(r => r.category === "transfer");
 
     const indexedSellerSold = sellerRows.reduce((s, r) => s + num(r.quantity), 0);
-    const totalSellerHive = sellerRows.reduce((s, r) => s + num(r.totalHive), 0);
+    const totalSellerHive = 
+sellerRows.reduce((s, r) => s + num(r.totalHive), 0);
     const totalTransfersOut = transferRows.reduce((s, r) => s + num(r.quantity), 0);
 
-    const allBalances = 
-window.__allElixirBalances || [];
+    const allBalances = window.__allElixirBalances || [];
     const sellerWalletBal = allBalances
       .filter(b => b.account === SELLER)
       .reduce((s, b) => s + b.total, 0);
     const publicBalances = allBalances.filter(b => b.account !== SELLER && b.account !== "null");
-    const publicHeldTotal = publicBalances.reduce((s, b) => s + b.total, 0);
+    const publicHeldTotal = publicBalances.reduce((s, b) => s + 
+b.total, 0);
     const openSellQty = sellerOpenOrders.reduce((s, o) => s + num(o.quantity), 0);
 
     $("sellerSold").textContent = fmt(indexedSellerSold);
@@ -444,49 +546,46 @@ window.__allElixirBalances || [];
       ? `${sellerRows.length.toLocaleString()} indexed sales (${fmt(totalSellerHive, 4)} HIVE)`
       : "Verified indexed market sales";
 
-    $("secondarySold").textContent = fmt(secondaryRows.reduce((s, r) => s + num(r.quantity), 0));
+    $("secondarySold").textContent = fmt(secondaryRows.reduce((s, r) => 
+s + num(r.quantity), 0));
     $("directTransfers").textContent = fmt(totalTransfersOut);
-    $("directTransfersSub").textContent = `${transferRows.length.toLocaleString()} outgoing transfers/
-stakes`;
+    $("directTransfersSub").textContent = `${transferRows.length.toLocaleString()} outgoing transfers/stakes`;
     $("publicHeld").textContent = fmt(publicHeldTotal);
 
     const circSupply = tokenMeta ? num(tokenMeta.circulatingSupply) : 0;
     const sellerTotalRemaining = sellerWalletBal + openSellQty;
 
-    $("circSupply").textContent = circSupply > 0 ? fmt(circSupply) : "Unavailable";
+    $("circSupply").textContent = 
+circSupply > 0 ? fmt(circSupply) : "Unavailable";
     $("sellerHeld").textContent = allBalances.length
       ? `${fmt(sellerTotalRemaining)} (${fmt(sellerWalletBal, 2)} wallet + ${fmt(openSellQty, 2)} in sell book)`
       : "Unavailable";
     $("totalDistributed").textContent = allBalances.length ? fmt(publicHeldTotal) : "Unavailable";
 
     const impliedMinimumSales = Math.max(0, publicHeldTotal - totalTransfersOut);
-    const unindexedGap = Math.max(0, impliedMinimumSales - indexedSellerSold);
+    const unindexedGap = Math.max(0, impliedMinimumSales 
+- indexedSellerSold);
 
     if (publicHeldTotal > 0) {
-      $("supplyGap").textContent = unindexedGap > 0.01
-        ? `${fmt(unindexedGap)} ELIXIR`
-        : "0.00 ELIXIR (Fully matched)";
-      $("supplyGap").style.color = unindexedGap > 0.01 ? "var(--amber)" : "var(--green)";
-
+      $("impliedSales").textContent = `${fmt(impliedMinimumSales)} ELIXIR`;
       $("reconNote").innerHTML = unindexedGap > 0.01
-        ? `<strong>Supply Reconciliation:</strong> Public wallets hold <strong>${fmt(publicHeldTotal)} ELIXIR</strong>, and @nectarbytes sent <strong>${fmt(totalTransfersOut)} ELIXIR</strong> via direct transfers/stakes. This confirms at least <strong>${fmt(impliedMinimumSales)} ELIXIR</strong> was sold by 
-@nectarbytes, with <strong>${fmt(unindexedGap)} ELIXIR</strong> representing older sales pruned from public nodes.`
+        ? `<strong>Supply Reconciliation:</strong> Public wallets hold <strong>${fmt(publicHeldTotal)} ELIXIR</strong>, and @nectarbytes sent <strong>${fmt(totalTransfersOut)} ELIXIR</strong> via direct transfers/stakes. That confirms <strong>${fmt(impliedMinimumSales)} 
+ELIXIR</strong> net sold by @nectarbytes (${fmt(indexedSellerSold)} indexed in table + ${fmt(unindexedGap)} older pruned trades).`
         : `<strong>100% Reconciled:</strong> Public wallet balances (${fmt(publicHeldTotal)} ELIXIR) match indexed sales (${fmt(indexedSellerSold)}) plus direct transfers (${fmt(totalTransfersOut)}).`;
     } else {
-      $("supplyGap").textContent = "—";
+      $("impliedSales").textContent = "—";
     }
 
     const prices = new Map();
-    rows.filter(r => r.category 
-=== "seller" || r.category === "secondary").forEach(r => {
+    rows.filter(r => r.category === "seller" || r.category === "secondary").forEach(r => {
       const p = num(r.price).toFixed(8);
       prices.set(p, (prices.get(p) || 0) + num(r.quantity));
     });
 
     const priceEntries = [...prices.entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
     $("priceBreakdown").innerHTML = priceEntries.length
-      ? `<div class="controls">${priceEntries.map(([p, q]) => `<div class="card" style="padding:12px;min-width:150px"><div class="label">${p} HIVE</
-div><strong class="cyan">${fmt(q)} ELIXIR</strong></div>`).join("")}</div>`
+      ? `<div class="controls">${priceEntries.map(([p, q]) => `<div class="card" style="padding:12px;min-width:150px"><div 
+class="label">${p} HIVE</div><strong class="cyan">${fmt(q)} ELIXIR</strong></div>`).join("")}</div>`
       : "No indexed market trades returned.";
 
     const term = $("search").value.trim().toLowerCase();
@@ -502,8 +601,7 @@ div><strong class="cyan">${fmt(q)} ELIXIR</strong></div>`).join("")}</div>`
       <td><span class="tag ${r.category === "transfer" ? "transfer" : r.category === "secondary" ? "secondary" : ""}">${esc(r.type)}</span></td>
       <td>@${esc(r.seller || "unknown")}</td><td>@${esc(r.buyer || "unknown")}</td>
       <td class="num">${fmt(r.quantity)}</td><td class="num">${num(r.price) ? fmt(r.price, 8) : "—"}</td>
-      <td class="num">$
-{num(r.totalHive) ? fmt(r.totalHive, 8) : "—"}</td>
+      <td class="num">${num(r.totalHive) ? fmt(r.totalHive, 8) : "—"}</td>
       <td title="${esc(r.txid)}">${esc(r.source)}${r.txid ? " · " + esc(r.txid) : ""}</td>
     </tr>`).join("") : `<tr><td colspan="8" class="muted">No matching transactions.</td></tr>`;
   }
@@ -515,20 +613,18 @@ div><strong class="cyan">${fmt(q)} ELIXIR</strong></div>`).join("")}</div>`
 
     stopRequested = false;
     button.disabled = true;
-    button.textContent = 
-"Auditing…";
+    button.textContent = "Auditing…";
     stopBtn.classList.remove("hidden");
     status.className = "status";
 
     const archiveMap = loadArchive();
     const warnings = [];
-    let rpcSuccess = false;
-    let historySuccess = false;
+    let anySuccess = false;
 
     try {
-      // STAGE 1: Fast RPC queries (Supply, Balances, Open Sell Orders, Recent Market Trades)
-      status.textContent = "Step 1/3: Fetching ELIXIR circulating supply, holder balances, and sell book…";
-      logDiag("Starting Stage 1: RPC token & balance queries...");
+      // STAGE 1: Hive Engine RPC Supply, Balances & Open Sell Orders
+      status.textContent = "Step 1/4: Querying ELIXIR supply, all holder balances, and sell book…";
+      logDiag("Stage 1: Querying Hive Engine tokens & sellBook...");
 
       try {
         const [tokens, balances, sellBook] = await Promise.all([
@@ -546,61 +642,59 @@ balances
           }))
           .filter(b => b.total > 0);
         sellerOpenOrders = sellBook;
-        rpcSuccess = true;
-        logDiag(`Stage 1 OK: ${balances.length} balance records, ${sellBook.length} open sell orders.`);
-        render(); // Render immediately so user sees supply & balances right away!
+        anySuccess = true;
+        logDiag(`Stage 1 OK: ${balances.length} holders, ${sellBook.length} open sell orders.`);
+        render();
       } catch (e) {
-        warnings.push("RPC balances/supply failed (" + e.message + ")");
-        logDiag("Stage 1 error: " + e.message);
+        warnings.push("Hive Engine 
+RPC blocked/offline (" + e.message + ")");
+        logDiag("Stage 1 failed: " + e.message);
       }
 
-      // STAGE 2: Live Market tradesHistory RPC
+      // STAGE 2: Hive Engine market.tradesHistory
       if (!stopRequested) {
-        status.textContent = "Step 2/3: Fetching live ELIXIR market tradesHistory…";
-        logDiag("Starting Stage 2: market.tradesHistory RPC...");
+        status.textContent = "Step 2/4: Querying live ELIXIR market.tradesHistory…";
+        logDiag("Stage 2: Querying market.tradesHistory...");
         try {
-          const market = await pagedRpc("market", 
-"tradesHistory", { symbol: SYMBOL }, count => {
-            status.textContent = `Step 2/3: Fetched ${count.toLocaleString()} live market trades…`;
+          const market = await pagedRpc("market", "tradesHistory", { symbol: 
+SYMBOL }, count => {
+            status.textContent = `Step 2/4: Fetched ${count.toLocaleString()} live market trades…`;
           });
           const marketRows = market.map(normalizeMarket).filter(r => r.quantity > 0 && r.seller && r.buyer);
           marketRows.forEach(r => archiveMap.set(r.key, r));
           saveArchive(archiveMap);
           rows = [...archiveMap.values()].sort((a, b) => b.timestamp - a.timestamp);
-          rpcSuccess = true;
-          logDiag(`Stage 2 OK: ${marketRows.length} market trades processed.`);
-          render(); // Render immediately after market trades!
+          anySuccess = true;
+          logDiag(`Stage 2 OK: $
+{marketRows.length} market trades loaded.`);
+          render();
         } catch (e) {
-          warnings.push("Live tradesHistory failed (" + e.message + ")");
-          logDiag("Stage 2 error: " + e.message);
+          warnings.push("market.tradesHistory failed (" + e.message + ")");
+          logDiag("Stage 2 failed: " + e.message);
         }
       }
 
-      // STAGE 3: Progressive Account History Scan (fast symbol query first, then full scan capped at 15,000 ops)
+      // STAGE 3: Hive Engine accountHistory (symbol-filtered first, then recent unfiltered)
       if (!stopRequested) {
-        status.textContent = "Step 3/3: Scanning @nectarbytes accountHistory for past sales & transfers…";
-        logDiag("Starting Stage 3: accountHistory scan...");
+        status.textContent = "Step 3/4: Scanning Hive 
+Engine accountHistory for @nectarbytes…";
+        logDiag("Stage 3: Querying Hive Engine accountHistory...");
         try {
-          // 3A: Fast targeted query for ELIXIR transfers/issues
           const symBatch = await historyBatch({ account: SELLER, symbol: SYMBOL, limit: "1000", offset: "0" });
           const symRows = normalizeAccountHistory(symBatch);
-          symRows.forEach(r => { if (!archiveMap.has(r.key)) 
-archiveMap.set(r.key, r); });
+          symRows.forEach(r => { if (!archiveMap.has(r.key)) archiveMap.set(r.key, r); });
           saveArchive(archiveMap);
           rows = [...archiveMap.values()].sort((a, b) => b.timestamp - a.timestamp);
-          historySuccess = true;
+          anySuccess = true;
           render();
-          logDiag(`Stage 3A OK: ${symBatch.length} symbol-filtered history ops checked.`);
+          logDiag(`Stage 3A OK: ${symBatch.length} symbol-filtered records scanned.`);
 
-          // 3B: Progressive unfiltered scan (capped at 15 pages = 15,000 ops so it never hangs)
           let offset = 0;
-          const MAX_HISTORY_OPS = 15000;
-          while (!stopRequested && 
-offset < MAX_HISTORY_OPS) {
-            status.textContent = `Step 3/3: Scanning @nectarbytes history (${offset.toLocaleString()}–${(offset + 1000).toLocaleString()} ops)… Click "Stop Scan" anytime.`;
+          const MAX_OPS = 10000;
+          while (!stopRequested && offset < MAX_OPS) {
+            status.textContent = `Step 3/4: Scanning @nectarbytes history (${offset.toLocaleString()}–${(offset + 1000).toLocaleString()} ops)…`;
             const batch = await historyBatch({ account: SELLER, limit: "1000", offset: String(offset) });
             if (!batch.length) break;
-
             const found = normalizeAccountHistory(batch);
             let added = 0;
             found.forEach(r => {
@@ -609,35 +703,72 @@ offset < MAX_HISTORY_OPS) {
                 added++;
               }
             });
-
             if (added > 0) {
               saveArchive(archiveMap);
               rows = [...archiveMap.values()].sort((a, b) => b.timestamp - a.timestamp);
               render();
             }
-
-            logDiag(`Stage 3B offset ${offset}: scanned ${batch.length} ops, +${added} new ELIXIR records.`);
+            logDiag(`Stage 3B offset ${offset}: ${batch.length} ops, +$
+{added} new ELIXIR records.`);
             if (batch.length < 1000) break;
             offset += 1000;
           }
         } catch (e) {
-          warnings.push("Account history scan interrupted (" + e.message + ")");
-          logDiag("Stage 3 error: " + e.message);
+          warnings.push("Hive Engine accountHistory failed (" + e.message + ")");
+          logDiag("Stage 3 failed: " + e.message);
+        }
+      }
+
+      // STAGE 4: Direct Hive Layer-1 Blockchain Fallback (api.hive.blog / api.deathwing.me)
+      if (!stopRequested) {
+        status.textContent = "Step 4/4: Verifying on-chain Hive Layer-1 custom_json broadcasts for @nectarbytes…";
+        logDiag("Stage 4: Querying Hive Layer-1 condenser_api.get_account_history...");
+        try {
+          let start = -1;
+          let pages = 0;
+          while (!stopRequested && pages < 5) {
+            const l1Batch = await hiveL1Call("condenser_api.get_account_history", [SELLER, start, 1000]);
+            if (!Array.isArray(l1Batch) || l1Batch.length === 0) break;
+
+            const l1Records = parseHiveL1CustomJson(l1Batch);
+            let added = 0;
+            l1Records.forEach(r => {
+              if (!archiveMap.has(r.key)) {
+                archiveMap.set(r.key, r);
+                added++;
+              }
+            });
+            if (added > 0) {
+              saveArchive(archiveMap);
+              rows = [...archiveMap.values()].sort((a, b) => b.timestamp - a.timestamp);
+              render();
+            }
+            anySuccess = true;
+            logDiag(`Stage 4 page ${pages + 1}: scanned ${l1Batch.length} Hive L1 ops, +${added} ELIXIR transfers.`);
+
+            const lowestSeq = l1Batch[0][0];
+            if (lowestSeq <= 0 || l1Batch.length < 1000) break;
+            start = lowestSeq - 1;
+            pages++;
+          }
+        } catch (e) {
+          warnings.push("Hive L1 fallback failed (" + e.message + ")");
+          logDiag("Stage 4 failed: " + e.message);
         }
       }
 
       const sellerSalesCount = rows.filter(r => r.category === "seller").length;
-      if (!rpcSuccess && !historySuccess && archiveMap.size === 0) {
+      if (!anySuccess && archiveMap.size === 0) {
         status.className = "status error";
-        status.textContent = "Audit could not connect to any Hive Engine node. Check the Diagnostic Log at the bottom of the page for details.";
+        status.textContent = "Audit could not reach any external node. If you are viewing this inside a sandboxed previewer that blocks internet requests, download the HTML file and open it directly in Chrome, Edge, or Firefox.";
       } else if (warnings.length > 0 || stopRequested) {
         status.className = "status warn";
-        const reason = stopRequested ? "Scan stopped manually by user." : warnings.join("; ");
-        status.textContent = `Audit finished (${sellerSalesCount.toLocaleString()} indexed sales, ${archiveMap.size.toLocaleString()} archived records). Note: ${reason}
-`;
+        const reason = stopRequested ? "Scan stopped manually." : warnings.join(" | ");
+        status.textContent = `Audit finished (${sellerSalesCount.toLocaleString()} indexed sales, ${archiveMap.size.toLocaleString()} archived records). Note: ${reason}`;
       } else {
         status.className = "status ok";
-        status.textContent = `Audit complete: ${sellerSalesCount.toLocaleString()} indexed sales by @${SELLER} (${archiveMap.size.toLocaleString()} total archived records).`;
+        status.textContent = `Audit complete: ${sellerSalesCount.toLocaleString()} indexed sales by @${SELLER} ($
+{archiveMap.size.toLocaleString()} total archived records).`;
       }
     } finally {
       button.disabled = false;
@@ -669,7 +800,8 @@ offset < MAX_HISTORY_OPS) {
     const archiveMap = loadArchive();
     const arr = [...archiveMap.values()].sort((a, b) => b.timestamp - a.timestamp);
     if (!arr.length) {
-      alert("No archived records to back up yet.");
+      alert("No archived records to 
+back up yet.");
       return;
     }
     const blob = new Blob([JSON.stringify(arr, null, 2)], { type: "application/json;charset=utf-8" });
@@ -693,13 +825,13 @@ offset < MAX_HISTORY_OPS) {
         const archiveMap = loadArchive();
         let imported = 0;
 
-        if (file.name.toLowerCase().endsWith(".json")) {
+        if (file.name.toLower
+Case().endsWith(".json")) {
           const parsed = JSON.parse(text);
           if (!Array.isArray(parsed)) throw new Error("Invalid JSON backup format.");
           parsed.forEach(item => {
             if (item && item.key && num(item.quantity) > 0) {
-              archiveMap.set(item.key, 
-item);
+              archiveMap.set(item.key, item);
               imported++;
             }
           });
@@ -713,15 +845,16 @@ item);
             headers.forEach((h, idx) => { obj[h] = vals[idx] ?? ""; });
             const qty = num(obj.quantity);
             const price = num(obj.price);
-            const ts = num(obj.timestamp);
+            const ts = 
+num(obj.timestamp);
             const seller = String(obj.seller || "").toLowerCase();
             const buyer = String(obj.buyer || "").toLowerCase();
             if (qty > 0 && seller) {
-              const cat = obj.category || (obj.type?.includes("TRANSFER") ? "transfer" : seller === SELLER ? 
-"seller" : "secondary");
+              const cat = obj.category || (obj.type?.includes("TRANSFER") ? "transfer" : seller === SELLER ? "seller" : "secondary");
               const key = cat === "transfer"
                 ? `transfer:${obj.txid || ts}:${seller}:${buyer}:${qty.toFixed(6)}`
-                : makeTradeKey(seller, buyer, qty, price, ts, obj.txid);
+                : makeTradeKey(seller, 
+buyer, qty, price, ts, obj.txid);
               archiveMap.set(key, {
                 key,
                 timestamp: ts,
@@ -743,11 +876,11 @@ item);
         }
 
         saveArchive(archiveMap);
-        rows = 
-[...archiveMap.values()].sort((a, b) => b.timestamp - a.timestamp);
+        rows = [...archiveMap.values()].sort((a, b) => b.timestamp - a.timestamp);
         render();
         $("status").className = "status ok";
-        $("status").textContent = `Imported ${imported.toLocaleString()} records into your cumulative archive (${archiveMap.size.toLocaleString()} total archived).`;
+        $("status").textContent = `Imported $
+{imported.toLocaleString()} records into your cumulative archive (${archiveMap.size.toLocaleString()} total archived).`;
       } catch (err) {
         alert("Failed to import backup: " + err.message);
       } finally {
@@ -774,8 +907,7 @@ item);
   });
   $("search").addEventListener("input", render);
   $("typeFilter").addEventListener("change", render);
-  $("export").addEventListener("click", 
-exportCsv);
+  $("export").addEventListener("click", exportCsv);
   $("exportJsonBtn").addEventListener("click", exportJsonBackup);
   $("importBtn").addEventListener("click", () => $("importFile").click());
   $("importFile").addEventListener("change", handleImportFile);
