@@ -6,27 +6,21 @@
 <title>ELIXIR Definitive Ledger</title>
 <style>
 :root{color-scheme:dark;--bg:#0f172a;--panel:#1e293b;--panel2:#111c30;--line:#334155;--muted:#94a3b8;--text:#e2e8f0;--green:#34d399;--cyan:#67e8f9;--amber:#fbbf24;--purple:#c084fc;--red:#f87171}
-*{box-sizing:border-box}body{margin:0;background:var(
---bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 main{max-width:1440px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}
 h1{font-size:26px;line-height:1.2;margin:0;color:white}h2{font-size:19px;margin:26px 0 12px;color:white}.sub{color:var(--muted);margin-top:6px}
-button,.btn{border:0;border-radius:9px;padding:10px 16px;background:#059669;color:wh
-ite;font-weight:650;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
-.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:17px;min-width:0}.label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.value{font-size:clamp(22px,3vw,32px);font-weight:750;margin:8px 0 2px;overflow-wrap:anywhere}.green{color:var(--green)}.cyan{color:var(--cyan)}.amber{color:var(--amber)}.p
-urple{color:var(--purple)}.muted{color:var(--muted)}
+button,.btn{border:0;border-radius:9px;padding:10px 16px;background:#059669;color:white;font-weight:650;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:17px;min-width:0}.label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.value{font-size:clamp(22px,3vw,32px);font-weight:750;margin:8px 0 2px;overflow-wrap:anywhere}.green{color:var(--green)}.cyan{color:var(--cyan)}.amber{color:var(--amber)}.purple{color:var(--purple)}.muted{color:var(--muted)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
-.status{padding:12px 14px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);margin:14px 0;color:var(--muted)}.status.error{border-color:#991b1b;color:#fecaca;background:#450a0a55}.status.ok{border-color:#065f46;color:#a7f3d0}
+.status{padding:12px 14px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);margin:14px 0;color:var(--muted)}.status.error{border-color:#991b1b;color:#fecaca;background:#450a0a55}.status.warn{border-color:#92400e;color:#fde68a;background:#451a0355}.status.ok{border-color:#065f46;color:#a7f3d0}
 .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
-input,select{background:var(--panel2);color:var(--text);border:1px 
-solid var(--line);border-radius:8px;padding:9px 11px;min-height:38px}
+input,select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-height:38px}
 input{flex:1;min-width:220px}.tablewrap{overflow:auto;max-height:660px;border:1px solid var(--line);border-radius:10px}
 table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:13px}th{position:sticky;top:0;background:#111827;color:#cbd5e1;text-align:left;text-transform:uppercase;font-size:11px;letter-spacing:.05em;z-index:1}
-th,td{padding:11px 12px;border-bottom:1px solid 
-#33415599}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}tbody tr:hover{background:#33415555}
+th,td{padding:11px 12px;border-bottom:1px solid #33415599}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}tbody tr:hover{background:#33415555}
 .tag{display:inline-block;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:700;background:#164e3b;color:#a7f3d0}.tag.transfer{background:#3b0764;color:#e9d5ff}.tag.secondary{background:#164e63;color:#a5f3fc}.tag.unknown{background:#78350f;color:#fde68a}
 .note{font-size:12px;color:var(--muted);margin-top:10px}.hidden{display:none}.foot{color:var(--muted);font-size:12px;margin:22px 2px}
-@media(max-width:900px){.cards{grid-template-columns:
-repeat(2,minmax(0,1fr))}.top{align-items:flex-start;flex-direction:column}}
+@media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.top{align-items:flex-start;flex-direction:column}}
 @media(max-width:520px){main{padding:12px}.cards{grid-template-columns:1fr 1fr}.value{font-size:21px}h1{font-size:22px}}
 </style>
 </head>
@@ -35,10 +29,9 @@ repeat(2,minmax(0,1fr))}.top{align-items:flex-start;flex-direction:column}}
   <header class="top">
     <div>
       <h1>ELIXIR Definitive Ledger</h1>
-      <div class="sub">Market activity and seller-specific sales tracking for 
-@nectarbytes</div>
+      <div class="sub">Market activity and seller-specific sales tracking for @nectarbytes</div>
     </div>
-    <button id="refresh">↻ Audit / Refresh</button>
+    <button id="refresh" type="button">↻ Audit / Refresh</button>
   </header>
 
   <div id="status" class="status">Ready to connect to Hive Engine data sources.</div>
@@ -69,8 +62,7 @@ repeat(2,minmax(0,1fr))}.top{align-items:flex-start;flex-direction:column}}
   <section class="panel">
     <h2 style="margin-top:0">Market volume by execution price</h2>
     <div id="priceBreakdown" class="muted">No data loaded.</div>
-    <div class="note">Price breakdown includes all market 
-sellers. The headline Total Sold figure remains restricted to market trades where @nectarbytes is the seller.</div>
+    <div class="note">Price breakdown includes all market sellers. The headline Total Sold figure remains restricted to market trades where @nectarbytes is the seller.</div>
   </section>
 
   <section class="panel">
@@ -94,10 +86,9 @@ sellers. The headline Total Sold figure remains restricted to market trades wher
         <tbody id="ledger"><tr><td colspan="8" class="muted">Load data to view transactions.</td></tr></tbody>
       </table>
     </div>
-    <div class="note">Market history is queried for the ELIXIR symbol across sellers. Seller-specific direct transfers are shown separately. Blockchain APIs may prune or limit historical records; this page does not invent missing sales from 
-current holder balances.</div>
+    <div class="note">Market history is queried for the ELIXIR symbol across sellers. Seller-specific direct transfers are shown separately. Blockchain APIs may prune or limit historical records; this page does not invent missing sales from current holder balances.</div>
   </section>
-  <div class="foot">Single-file dashboard. No framework or CDN dependencies. Live blockchain data requires an internet connection and the public Hive Engine endpoints.</div>
+  <div class="foot">Single-file dashboard. No framework or CDN dependencies. Live blockchain data requires an internet connection and open public Hive Engine endpoints.</div>
 </main>
 <script>
 (() => {
@@ -106,196 +97,289 @@ current holder balances.</div>
   const SYMBOL = "ELIXIR";
   const RPC_NODES = [
     "https://api.hive-engine.com/rpc/contracts",
-    "https://herpc.dtools.dev
-/contracts",
+    "https://enginerpc.com/contracts",
+    "https://api2.hive-engine.com/rpc/contracts",
+    "https://herpc.dtools.dev/contracts",
     "https://api.primersion.com/contracts"
   ];
   const HISTORY_NODES = [
     "https://history.hive-engine.com/accountHistory",
-    "https://accounts.hive-engine.com/accountHistory"
+    "https://accounts.hive-engine.com/accountHistory",
+    "https://he.atexoras.com:2083/accountHistory"
   ];
+
   let rows = [];
-  let statusText = "";
+  let filteredRows = [];
   const $ = id => document.getElementById(id);
+
   const num = v => {
     const n = Number.parseFloat(v ?? 0);
     return Number.isFinite(n) ? n : 0;
   };
-  const fmt = (v, digits=6) => num(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:digits});
-  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const fmt = (v, digits = 6) => num(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: digits });
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const dateFrom = ts => {
     const n = Number(ts || 0);
     return n > 0 ? new Date(n * 1000).toLocaleString() : "Unavailable";
   };
+
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function rpc(payload) {
     let lastError;
     for (const url of RPC_NODES) {
       try {
-        const response = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-        if (!response.ok) throw new Error(`${response.status} from ${url}`);
+        const response = await fetchWithTimeout(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status} from ${url}`);
         const json = await response.json();
         if (json && Array.isArray(json.result)) return json.result;
-        throw new Error(`Unexpected RPC response from ${url}`);
-      } catch (e) { lastError = e; console.warn("RPC endpoint 
-failed",url,e); }
+        throw new Error(`Unexpected RPC payload from ${url}`);
+      } catch (e) {
+        lastError = e;
+        console.warn("RPC endpoint failed:", url, e);
+      }
     }
-    throw new Error("All Hive Engine RPC endpoints failed. " + (lastError?.message || ""));
+    throw new Error("All Hive Engine RPC endpoints failed (" + (lastError?.message || "Network/CORS error") + ")");
   }
-  async function history(account, limit=1000, offset=0) {
+
+  async function history(account, limit = 1000, offset = 0) {
     let lastError;
     for (const base of HISTORY_NODES) {
       try {
-        const url = `${base}?${new URLSearchParams({account,symbol:SYMBOL,limit:String(limit),offset:String(offset)})}`;
-        const response = await 
-fetch(url);
-        if (!response.ok) throw new Error(`${response.status} from ${base}`);
+        const url = `${base}?${new URLSearchParams({ account, symbol: SYMBOL, limit: String(limit), offset: String(offset) })}`;
+        const response = await fetchWithTimeout(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status} from ${base}`);
         const json = await response.json();
-        if (!Array.isArray(json)) throw new Error("Unexpected history response");
+        if (!Array.isArray(json)) throw new Error("Unexpected history payload");
         return json;
-      } catch(e) { lastError=e; console.warn("History endpoint failed",base,e); }
+      } catch (e) {
+        lastError = e;
+        console.warn("History endpoint failed:", base, e);
+      }
     }
-    throw new Error("All history endpoints failed. " + (lastError?.message || ""));
+    throw new Error("All history endpoints failed (" + (lastError?.message || "Network/CORS error") + ")");
   }
+
   async function pagedRpc(table, query) {
-    const out=[]; let offset=0;
+    const out = [];
+    let offset = 0;
     while (true) {
-      const batch=await rpc({jsonrpc:"2.0",id:1,method:"find",params:{contract:table==="balances"?"tokens":"market",table,query,limit:1000,offset}});
+      const batch = await rpc({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "find",
+        params: { contract: table === "balances" ? "tokens" : "market", table, query, limit: 1000, offset }
+      });
       out.push(...batch);
-      if (batch.length<1000) break;
-      offset+=1000;
-      if (offset>1000000) throw new Error("Pagination safety limit reached.");
+      if (batch.length < 1000) break;
+      offset += 1000;
+      if (offset > 1000000) throw new Error("Pagination safety limit reached.");
     }
     return out;
   }
+
   async function sellerHistory() {
-    const out=[]; let offset=0;
-    while(true) {
-      const batch=await history(SELLER,1000,offset);
+    const out = [];
+    let offset = 0;
+    while (true) {
+      const batch = await history(SELLER, 1000, offset);
       out.push(...batch);
-      if(batch.length<1000 || out.length>=100000) break;
-      offset+=1000;
+      if (batch.length < 1000 || out.length >= 100000) break;
+      offset += 1000;
     }
     return out;
   }
+
   function normalizeMarket(t) {
-    const seller=String(t.seller||"").toLowerCase();
-    const buyer=String(t.buyer||"").toLowerCase();
-    const quantity=num(t.quantity);
-    const price=num(t.price);
-    const ts=num(t.timestamp);
-    const id=t._id ?? t.transactionId ?? t.txid ?? "";
+    const seller = String(t.seller || "").toLowerCase();
+    const buyer = String(t.buyer || "").toLowerCase();
+    const quantity = num(t.quantity);
+    const price = num(t.price);
+    const ts = num(t.timestamp);
+    const id = t._id ?? t.transactionId ?? t.txid ?? "";
     return {
-      key:`market:${id || [seller,buyer,quantity,price,ts].join(":")}`,
-      timestamp:ts,date:dateFrom(ts),type:seller===SELLER?"MARKET SALE — NECTARBYTES":"SECONDARY MARKET SALE",
-      seller,buyer,quantity,price,totalHive:quantity*price,source:"Hive Engine market",
-      txid:String(id),category:seller===SE
-LLER?"seller":"secondary",memo:""
+      key: `market:${id || [seller, buyer, quantity, price, ts].join(":")}`,
+      timestamp: ts,
+      date: dateFrom(ts),
+      type: seller === SELLER ? "MARKET SALE — NECTARBYTES" : "SECONDARY MARKET SALE",
+      seller,
+      buyer,
+      quantity,
+      price,
+      totalHive: quantity * price,
+      source: "Hive Engine market",
+      txid: String(id),
+      category: seller === SELLER ? "seller" : "secondary",
+      memo: ""
     };
   }
+
   function normalizeTransfers(records) {
-    return records.flatMap((r,i)=>{
-      const op=String(r.operation||"").toLowerCase();
-      if(!(op.includes("transfer")||op.includes("issue"))) return [];
-      const account=String(r.account||"").toLowerCase();
-      const 
-from=String(r.from||r.sender||(account===SELLER?account:"")).toLowerCase();
-      const to=String(r.to||r.receiver||"").toLowerCase();
-      const quantity=num(r.quantity??r.amount??r.quantityTokens);
-      if(from!==SELLER || !to || to===SELLER || quantity<=0) return [];
-      const ts=num(r.timestamp), id=r._id??r.transactionId??r.txid??`${ts}:${i}`;
+    return records.flatMap((r, i) => {
+      const op = String(r.operation || "").toLowerCase();
+      if (!(op.includes("transfer") || op.includes("issue"))) return [];
+      const account = String(r.account || "").toLowerCase();
+      const from = String(r.from || r.sender || (account === SELLER ? account : "")).toLowerCase();
+      const to = String(r.to || r.receiver || "").toLowerCase();
+      const quantity = num(r.quantity ?? r.amount ?? r.quantityTokens);
+      if (from !== SELLER || !to || to === SELLER || quantity <= 0) return [];
+      const ts = num(r.timestamp);
+      const id = r._id ?? r.transactionId ?? r.txid ?? `${ts}:${i}`;
       return [{
-        key:`transfer:${id}`,timestamp:ts,date:dateFrom(ts),type:"DIRECT 
-TRANSFER",
-        seller:from,buyer:to,quantity,price:0,totalHive:0,source:"Seller account history",
-        txid:String(id),category:"transfer",memo:String(r.memo||"")
+        key: `transfer:${id}`,
+        timestamp: ts,
+        date: dateFrom(ts),
+        type: "DIRECT TRANSFER",
+        seller: from,
+        buyer: to,
+        quantity,
+        price: 0,
+        totalHive: 0,
+        source: "Seller account history",
+        txid: String(id),
+        category: "transfer",
+        memo: String(r.memo || "")
       }];
     });
   }
+
   function render() {
-    const sellerRows=rows.filter(r=>r.category==="seller");
-    const secondaryRows=rows.filter(r=>r.category==="secondary");
-    const 
-transferRows=rows.filter(r=>r.category==="transfer");
-    $("sellerSold").textContent=fmt(sellerRows.reduce((s,r)=>s+r.quantity,0));
-    $("secondarySold").textContent=fmt(secondaryRows.reduce((s,r)=>s+r.quantity,0));
-    $("directTransfers").textContent=fmt(transferRows.reduce((s,r)=>s+r.quantity,0));
-    const visibleBalances=window.__elixirBalances || [];
-    
-$("publicHeld").textContent=fmt(visibleBalances.reduce((s,b)=>s+b.total,0));
-    const prices=new Map();
-    rows.filter(r=>r.category==="seller"||r.category==="secondary").forEach(r=>{
-      const p=r.price.toFixed(8); prices.set(p,(prices.get(p)||0)+r.quantity);
+    const sellerRows = rows.filter(r => r.category === "seller");
+    const secondaryRows = rows.filter(r => r.category === "secondary");
+    const transferRows = rows.filter(r => r.category === "transfer");
+
+    $("sellerSold").textContent = fmt(sellerRows.reduce((s, r) => s + r.quantity, 0));
+    $("secondarySold").textContent = fmt(secondaryRows.reduce((s, r) => s + r.quantity, 0));
+    $("directTransfers").textContent = fmt(transferRows.reduce((s, r) => s + r.quantity, 0));
+
+    const visibleBalances = window.__elixirBalances || [];
+    $("publicHeld").textContent = fmt(visibleBalances.reduce((s, b) => s + b.total, 0));
+
+    const prices = new Map();
+    rows.filter(r => r.category === "seller" || r.category === "secondary").forEach(r => {
+      const p = r.price.toFixed(8);
+      prices.set(p, (prices.get(p) || 0) + r.quantity);
     });
-    const priceEntries=[...prices.entries()].sort((a,b)=>Number(a[0])-Number(b[0]));
-    $("priceBreakdown").innerHTML=priceEntries.length
-      ? `<div 
-class="controls">${priceEntries.map(([p,q])=>`<div class="card" style="padding:12px;min-width:150px"><div class="label">${p} HIVE</div><strong class="cyan">${fmt(q)} ELIXIR</strong></div>`).join("")}</div>`
+
+    const priceEntries = [...prices.entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
+    $("priceBreakdown").innerHTML = priceEntries.length
+      ? `<div class="controls">${priceEntries.map(([p, q]) => `<div class="card" style="padding:12px;min-width:150px"><div class="label">${p} HIVE</div><strong class="cyan">${fmt(q)} ELIXIR</strong></div>`).join("")}</div>`
       : "No market trades returned.";
-    const term=$("search").value.trim().toLowerCase(), filter=$("typeFilter").value;
-    const filtered=rows.filter(r=>{
-      const matchesFilter=filter==="all"||r.category===filter;
-      const 
-hay=[r.date,r.type,r.seller,r.buyer,r.memo,r.txid,r.source].join(" ").toLowerCase();
-      return matchesFilter && (!term||hay.includes(term));
+
+    const term = $("search").value.trim().toLowerCase();
+    const filter = $("typeFilter").value;
+    filteredRows = rows.filter(r => {
+      const matchesFilter = filter === "all" || r.category === filter;
+      const hay = [r.date, r.type, r.seller, r.buyer, r.memo, r.txid, r.source].join(" ").toLowerCase();
+      return matchesFilter && (!term || hay.includes(term));
     });
-    $("ledger").innerHTML=filtered.length?filtered.map(r=>`<tr>
+
+    $("ledger").innerHTML = filteredRows.length ? filteredRows.map(r => `<tr>
       <td>${esc(r.date)}</td>
-      <td><span class="tag ${r.category==="transfer"?"transfer":r.category==="secondary"?"secondary":""}">${esc(r.type)}</span></td>
-      
-<td>@${esc(r.seller||"unknown")}</td><td>@${esc(r.buyer||"unknown")}</td>
-      <td class="num">${fmt(r.quantity)}</td><td class="num">${r.price?fmt(r.price,8):"—"}</td>
-      <td class="num">${r.price?fmt(r.totalHive,8):"—"}</td>
-      <td title="${esc(r.txid)}">${esc(r.source)}${r.txid?" · "+esc(r.txid):""}</td>
-    </tr>`).join(""):`<tr><td colspan="8" class="muted">No matching transactions.</td></tr>`;
+      <td><span class="tag ${r.category === "transfer" ? "transfer" : r.category === "secondary" ? "secondary" : ""}">${esc(r.type)}</span></td>
+      <td>@${esc(r.seller || "unknown")}</td><td>@${esc(r.buyer || "unknown")}</td>
+      <td class="num">${fmt(r.quantity)}</td><td class="num">${r.price ? fmt(r.price, 8) : "—"}</td>
+      <td class="num">${r.price ? fmt(r.totalHive, 8) : "—"}</td>
+      <td title="${esc(r.txid)}">${esc(r.source)}${r.txid ? " · " + esc(r.txid) : ""}</td>
+    </tr>`).join("") : `<tr><td colspan="8" class="muted">No matching transactions.</td></tr>`;
   }
+
   async function load() {
-    const button=$("refresh"), 
-status=$("status");
-    button.disabled=true; button.textContent="Loading…";
-    status.className="status"; status.textContent="Fetching ELIXIR market history, @nectarbytes account history and current balances…";
+    const button = $("refresh");
+    const status = $("status");
+    button.disabled = true;
+    button.textContent = "Loading…";
+    status.className = "status";
+    status.textContent = "Fetching ELIXIR market history, @nectarbytes account history and current balances…";
+
     try {
-      const [market, sellerOps, balances] = await Promise.all([
-        pagedRpc("tradesHistory",{symbol:SYMBOL}),
+      const [marketRes, sellerOpsRes, balancesRes] = await Promise.allSettled([
+        pagedRpc("tradesHistory", { symbol: SYMBOL }),
         sellerHistory(),
-        pagedRpc("balances",{symbol:SYMBOL})
+        pagedRpc("balances", { symbol: SYMBOL })
       ]);
-      const 
-marketRows=market.map(normalizeMarket).filter(r=>r.quantity>0 && r.seller && r.buyer);
-      const transferRows=normalizeTransfers(sellerOps);
-      const map=new Map();
-      marketRows.forEach(r=>map.set(r.key,r));
-      transferRows.forEach(r=>map.set(r.key,r));
-      rows=[...map.values()].sort((a,b)=>b.timestamp-a.timestamp);
-      window.__elixirBalances=balances
-        
-.filter(b=>String(b.account||"").toLowerCase()!==SELLER)
-        .map(b=>({total:num(b.balance)+num(b.stake)+num(b.pendingUnstake)}))
-        .filter(b=>b.total>0);
+
+      if (marketRes.status === "rejected" && balancesRes.status === "rejected") {
+        throw new Error(marketRes.reason?.message || "Unable to reach Hive Engine RPC nodes.");
+      }
+
+      const market = marketRes.status === "fulfilled" ? marketRes.value : [];
+      const sellerOps = sellerOpsRes.status === "fulfilled" ? sellerOpsRes.value : [];
+      const balances = balancesRes.status === "fulfilled" ? balancesRes.value : [];
+
+      const marketRows = market.map(normalizeMarket).filter(r => r.quantity > 0 && r.seller && r.buyer);
+      const transferRows = normalizeTransfers(sellerOps);
+
+      const map = new Map();
+      marketRows.forEach(r => map.set(r.key, r));
+      transferRows.forEach(r => map.set(r.key, r));
+      rows = [...map.values()].sort((a, b) => b.timestamp - a.timestamp);
+
+      window.__elixirBalances = balances
+        .filter(b => String(b.account || "").toLowerCase() !== SELLER)
+        .map(b => ({ total: num(b.balance) + num(b.stake) + num(b.pendingUnstake) }))
+        .filter(b => b.total > 0);
+
       render();
-      status.className="status ok";
-      status.textContent=`Loaded ${marketRows.length.toLocaleString()} market trades across all sellers and ${transferRows.length.toLocaleString()} direct transfers from @${SELLER}. Market-sale total counts only trades where @${SELLER} is the seller.`;
-    } catch(e) {
-      status.className="status 
-error";
-      status.textContent="Audit could not be completed: "+e.message+" Check your connection or try again. Partial/failed results are not presented as a successful audit.";
+
+      const warnings = [];
+      if (marketRes.status === "rejected") warnings.push("Market trades unavailable");
+      if (sellerOpsRes.status === "rejected") warnings.push("Direct transfer history unavailable (History API unreachable/CORS)");
+      if (balancesRes.status === "rejected") warnings.push("Holder balances unavailable");
+
+      if (warnings.length > 0) {
+        status.className = "status warn";
+        status.textContent = `Partial audit loaded (${marketRows.length.toLocaleString()} market trades, ${transferRows.length.toLocaleString()} direct transfers). Warning: ${warnings.join("; ")}.`;
+      } else {
+        status.className = "status ok";
+        status.textContent = `Loaded ${marketRows.length.toLocaleString()} market trades across all sellers and ${transferRows.length.toLocaleString()} direct transfers from @${SELLER}. Market-sale total counts only trades where @${SELLER} is the seller.`;
+      }
+    } catch (e) {
+      status.className = "status error";
+      status.textContent = "Audit could not be completed: " + e.message + " Ensure you open this file directly in a standard web browser with internet access.";
       console.error(e);
     } finally {
-      button.disabled=false; button.textContent="↻ Audit / Refresh";
+      button.disabled = false;
+      button.textContent = "↻ Audit / Refresh";
     }
   }
+
   function exportCsv() {
-    const cols=["date","type","seller","buyer","quantity","price","totalHive","source","txid","memo"];
-    const 
-csv=[cols.join(","),...rows.map(r=>cols.map(k=>`"${String(r[k]??"").replace(/"/g,'""')}"`).join(","))].join("\r\n");
-    const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
-    const url=URL.createObjectURL(blob), a=document.createElement("a");
-    a.href=url;a.download="elixir-transaction-ledger.csv";a.click();URL.revokeObjectURL(url);
+    const sourceData = filteredRows.length ? filteredRows : rows;
+    if (!sourceData.length) {
+      alert("No transaction data loaded to export.");
+      return;
+    }
+    const cols = ["date", "type", "seller", "buyer", "quantity", "price", "totalHive", "source", "txid", "memo"];
+    const csv = [cols.join(","), ...sourceData.map(r => cols.map(k => `"${String(r[k] ?? "").replace(/"/g, '""')}"`).join(","))].join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "elixir-transaction-ledger.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
-  $("refresh").addEventListener("click",load);
-  
-$("search").addEventListener("input",render);
-  $("typeFilter").addEventListener("change",render);
-  $("export").addEventListener("click",exportCsv);
+
+  $("refresh").addEventListener("click", load);
+  $("search").addEventListener("input", render);
+  $("typeFilter").addEventListener("change", render);
+  $("export").addEventListener("click", exportCsv);
+
   load();
 })();
 </script>
