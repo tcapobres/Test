@@ -11,15 +11,15 @@
       color: #e2e8f0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       line-height: 1.5;
-      padding: 1.5rem;
+      padding: 1rem;
     }
     .container { max-width: 72rem; margin: 0 auto; }
-    .space-y-6 > * + * { margin-top: 1.5rem; }
+    .space-y-6 > * + * { margin-top: 1.25rem; }
     .header-card {
       background-color: #1e293b;
       border: 1px solid #334155;
       border-radius: 0.75rem;
-      padding: 1.5rem;
+      padding: 1.25rem;
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
@@ -29,14 +29,14 @@
 rgba(0, 0, 0, 0.2);
     }
     .title {
-      font-size: 1.875rem;
+      font-size: 1.5rem;
       font-weight: 700;
       color: #ffffff;
       display: flex;
       align-items: center;
       gap: 0.5rem;
     }
-    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-top: 0.25rem; }
+    .subtitle { color: #94a3b8; font-size: 0.85rem; margin-top: 0.25rem; }
     .btn {
       display: inline-flex;
       align-items: center;
@@ -44,39 +44,36 @@ rgba(0, 0, 0, 0.2);
       background-color: #059669;
       color: #ffffff;
       border: none;
-      padding: 0.625rem 1.5rem;
+      padding: 0.625rem 1.25rem;
       border-radius: 0.5rem;
-      font-weight: 500;
-      font-size: 0.95rem;
+      font-weight: 600;
+      font-size: 0.9rem;
       cursor: pointer;
-      transition: background-color 0.15s ease;
     }
-    .btn:hover:not(:disabled) { background-color: #10b981; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .error-box {
-      background-color: rgba(127, 29, 29, 0.5);
+      background-color: rgba(127, 29, 29, 0.6);
       border: 1px solid #ef4444;
       color: #fecaca;
       padding: 1rem;
       border-radius: 0.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
+      font-size: 0.875rem;
     }
     .loading-box {
       background-color: #1e293b;
       border: 1px solid #334155;
       border-radius: 0.75rem;
-      padding: 5rem 1.5rem;
+      padding: 2.5rem 1rem;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
     }
-    .loading-msg { font-size: 1.125rem; color: #cbd5e1; font-weight: 500; margin-top: 1rem; }
+    .loading-msg { font-size: 1.05rem; color: #cbd5e1; font-weight: 600; margin-top: 0.75rem; }
+    .loading-sub { font-size: 0.8rem; color: #94a3b8; margin-top: 0.35rem; }
     .quality-bar {
-      background-color: rgba(30, 41, 59, 0.6);
+      background-color: rgba(30, 41, 59, 0.7);
       border: 1px solid #334155;
       border-radius: 0.5rem;
       padding: 0.75rem 1rem;
@@ -84,57 +81,17 @@ rgba(0, 0, 0, 0.2);
       color: #94a3b8;
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem 1.5rem;
+      gap: 0.5rem 1.25rem;
     }
     .quality-bar strong { color: #e2e8f0; font-weight: 600; }
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 
+1fr));
+      gap: 0.875rem;
     }
     .stat-card {
       background-color: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 0.75rem;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .stat-card.highlight {
-      border-color: rgba(245, 158, 11, 
-0.5);
-      box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
-    }
-    .stat-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1rem;
-    }
-    .stat-title { color: #94a3b8; font-weight: 500; font-size: 0.875rem; }
-    .stat-icon { padding: 0.5rem; border-radius: 0.5rem; background-color: rgba(15, 23, 42, 0.5); }
-    .stat-value { font-size: 1.75rem; 
-font-weight: 700; margin-bottom: 0.25rem; }
-    .stat-subtext { font-size: 0.75rem; color: #64748b; }
-    .section-heading {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #ffffff;
-      padding: 0 0.5rem;
-      margin-top: 2rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .tranche-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(230px, 
-1fr));
-      gap: 1rem;
-    }
-    .tranche-card {
-      background-color: rgba(30, 41, 59, 0.8);
       border: 1px solid #334155;
       border-radius: 0.75rem;
       padding: 1.25rem;
@@ -142,40 +99,75 @@ font-weight: 700; margin-bottom: 0.25rem; }
       flex-direction: column;
       justify-content: space-between;
     }
-    .tranche-label { color: #94a3b8; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; }
-    .tranche-price { font-family: ui-monospace, SFMono-Regular, 
-Menlo, Monaco, Consolas, monospace; font-size: 1.5rem; color: #22d3ee; font-weight: 700; margin-bottom: 1rem; }
-    .tranche-footer { padding-top: 0.75rem; border-top: 1px solid rgba(51, 65, 85, 0.5); }
-    .tranche-vol-label { color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
-    .tranche-vol { font-size: 1.125rem; font-weight: 700; color: #ffffff; }
+    .stat-card.highlight {
+      border-color: rgba(245, 158, 11, 0.5);
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+    }
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+    .stat-title { color: #94a3b8; font-weight: 500; font-size: 0.825rem; }
+    .stat-icon { padding: 0.4rem; border-radius: 0.5rem; background-color: rgba(15, 23, 42, 0.5); }
+    .stat-value { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .stat-subtext { font-size: 0.75rem; color: #64748b; }
+    .section-heading {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #ffffff;
+      padding: 0 0.25rem;
+      margin-top: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .tranche-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 0.875rem;
+    }
+    .tranche-card {
+      background-color: rgba(30, 41, 59, 0.85);
+      border: 1px solid #334155;
+      border-radius: 0.75rem;
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .tranche-label { color: #94a3b8; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.35rem; }
+    .tranche-price { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 1.35rem; color: #22d3ee; font-weight: 700; margin-bottom: 0.75rem; }
+    .tranche-footer { padding-top: 0.65rem; border-top: 1px solid rgba(51, 65, 85, 0.5); }
+    .tranche-vol-label { color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem; }
+    .tranche-vol { font-size: 1.05rem; font-weight: 700; color: #ffffff; }
     .table-container {
       background-color: #1e293b;
       border: 1px solid #334155;
       border-radius: 0.75rem;
       overflow: hidden;
-      max-height: 700px;
+      max-height: 650px;
       display: flex;
       flex-direction: column;
     }
-    .table-scroll { overflow: auto; flex: 1; }
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; white-space: nowrap; }
+    .table-scroll { overflow: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.825rem; white-space: nowrap; }
     thead { background-color: rgba(15, 23, 42, 0.95); position: sticky; top: 0; z-index: 10; }
     th {
-      padding: 1rem;
+      padding: 0.85rem;
       font-weight: 600;
       color: #cbd5e1;
       border-bottom: 1px solid #334155;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
     }
-    td { padding: 1rem; border-bottom: 1px solid rgba(51, 65, 85, 0.5); }
-    tr:hover { background-color: rgba(51, 65, 85, 0.35); }
-    tr.reconstructed { background-color: rgba(120, 53, 15, 0.12); }
+    td { padding: 0.85rem; border-bottom: 1px solid rgba(51, 65, 85, 0.5); }
+    tr.reconstructed { background-color: rgba(120, 53, 15, 0.14); }
     .text-right { text-align: right; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
-monospace; }
-    .truncate { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .truncate { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .text-indigo { color: #818cf8; }
     .text-purple { color: #c084fc; }
     .text-cyan { color: #22d3ee; }
@@ -194,17 +186,35 @@ monospace; }
       border: 1px solid rgba(245, 158, 11, 0.3);
       border-radius: 0.5rem;
       color: rgba(253, 230, 138, 0.85);
-      font-size: 0.875rem;
+      font-size: 0.825rem;
     }
+    .diag-box {
+      background-color: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.72rem;
+      color: #94a3b8;
+      max-height: 180px;
+      overflow-y: auto;
+      text-align: left;
+      width: 100%;
+      max-width: 44rem;
+      margin-top: 1rem;
+    }
+    .diag-line { margin-bottom: 0.2rem; word-break: break-word; }
+    .diag-err { color: #fca5a5; }
+    .diag-ok { color: #6ee7b7; }
     .hidden { display: none !important; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .spin { animation: spin 1s linear 
-infinite; }
-    .pulse { animation: pulse 1.5s ease-in-out infinite; }
-    svg.icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
-    svg.icon-lg { width: 1.75rem; height: 1.75rem; flex-shrink: 0; }
-    svg.icon-xl { width: 2.5rem; height: 2.5rem; flex-shrink: 0; }
+    .spin { animation: spin 1s linear infinite; }
+    .pulse { animation: pulse 1.5s 
+ease-in-out infinite; }
+    svg.icon { width: 1.15rem; height: 1.15rem; flex-shrink: 0; }
+    svg.icon-lg { width: 1.5rem; height: 1.5rem; flex-shrink: 0; }
+    svg.icon-xl { width: 2.25rem; height: 2.25rem; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -212,8 +222,8 @@ infinite; }
     <header class="header-card">
       <div>
         <h1 class="title">
-          <svg class="icon-lg text-emerald" viewBox="0 0 24 24" 
-fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="icon-lg text-emerald" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
+stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <path d="m9 12 2 2 4-4"></path>
           </svg>
@@ -221,27 +231,20 @@ fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke
         </h1>
         <p class="subtitle">Cross-referencing APIs with Staked/Liquid Rich List to reconstruct pruned data</p>
       </div>
-      <button id="auditBtn" class="btn" 
-onclick="processData()">
-        <svg id="auditIcon" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button id="auditBtn" class="btn" type="button">
+        <svg id="auditIcon" class="icon" viewBox="0 0 24 24" 
+fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
           <path d="M3 3v5h5"></path>
           <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
           <path d="M16 16h5v5"></path>
         </svg>
-        <span 
-id="auditBtnText">Reconciling...</span>
+        <span id="auditBtnText">Audit Supply</span>
       </button>
     </header>
 
     <div id="errorBox" class="error-box hidden">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" 
-x2="12.01" y2="16"></line>
-      </svg>
-      <p id="errorMsg"></p>
+      <div id="errorMsg"></div>
     </div>
 
     <div id="loadingBox" class="loading-box">
@@ -249,7 +252,9 @@ x2="12.01" y2="16"></line>
         <circle cx="11" cy="11" r="8"></circle>
         <path d="m21 21-4.3-4.3"></path>
       </svg>
-      <p id="loadingMsg" class="loading-msg">Initializing...</p>
+      <p id="loadingMsg" class="loading-msg">Booting ledger engine...</p>
+      <p id="loadingSub" class="loading-sub">Connecting to Hive-Engine nodes (WebView compatible mode)</p>
+      <div id="diagLog" class="diag-box"></div>
     </div>
 
     <main id="mainContent" class="space-y-6 hidden">
@@ -257,8 +262,7 @@ x2="12.01" y2="16"></line>
       <div id="statsGrid" class="stats-grid"></div>
 
       <h2 class="section-heading">
-        <svg class="icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" 
-stroke-linejoin="round">
+        <svg class="icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 3v18h18"></path>
           <path d="M18 17V9"></path>
           <path d="M13 17V5"></path>
@@ -269,8 +273,7 @@ stroke-linejoin="round">
       <div id="trancheGrid" class="tranche-grid"></div>
 
       <h2 class="section-heading">
-        <svg class="icon text-emerald" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" 
-stroke-linejoin="round">
+        <svg class="icon text-emerald" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
           <path d="M3 3v5h5"></path>
           <path d="M12 7v5l4 2"></path>
@@ -297,24 +300,49 @@ stroke-linejoin="round">
       </div>
 
       <div id="reconstructedNote" class="note-box hidden">
-        <strong>Why do some records say "BUY (RECONSTRUCTED)"?</strong> Hive Engine permanently deletes older market transactions from their public APIs. Because we know exactly who holds tokens from the Rich List, this app mathematically calculates the missing historical purchases and reconstructs them into the ledger, ensuring you have a 100% accurate count of the supply sold. We assume these pruned sales were executed at the Tranche 1 price (1.0 HIVE).
+        <strong>Why do some records say "BUY (RECONSTRUCTED)"?</strong> Hive Engine permanently deletes older market transactions from their public APIs. Because we know exactly who holds tokens from the Rich List, this app mathematically calculates the 
+missing historical purchases and reconstructs them into the ledger, ensuring you have a 100% accurate count of the supply sold. We assume these pruned sales were executed at the Tranche 1 price (1.0 HIVE).
       </div>
     </main>
   </div>
 
   <script>
-    const historyCache = new Map();
-    const SELLER_ACCOUNT = 'nectarbytes';
-    const SYMBOL = 'ELIXIR';
-    const TRANCHE_1_PRICE = 1.0;
-    const HISTORY_PAGE_SIZE = 500;
-    const RPC_PAGE_SIZE = 1000;
-    const MAX_HISTORY_PAGES = 400;
-    const CROSS_CHECK_CONCURRENCY = 3;
-    const CROSS_CHECK_RETRIES = 4;
-    const EPSILON = 0.000001;
+    function logDiag(msg, type) {
+      var box = document.getElementById('diagLog');
+      if (!box) return;
+      var line = document.createElement('div');
+      line.className = 'diag-line' + (type === 'err' ? ' diag-err' : (type === 'ok' ? ' diag-ok' : ''));
+      line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    }
 
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    window.onerror = function(message, source, lineno) {
+      var errBox = document.getElementById('errorBox');
+      var errMsg = document.getElementById('errorMsg');
+      if (errBox && errMsg) {
+        errMsg.textContent = 'Script Error (line ' + lineno + '): ' + message;
+        errBox.classList.remove('hidden');
+      }
+      logDiag('ERROR: ' + message, 'err');
+      return false;
+    };
+
+    var historyCache = {};
+    var SELLER_ACCOUNT = 'nectarbytes';
+    var SYMBOL = 'ELIXIR';
+    var TRANCHE_1_PRICE = 1.0;
+    var HISTORY_PAGE_SIZE = 500;
+    var RPC_PAGE_SIZE = 1000;
+    var MAX_HISTORY_PAGES = 400;
+    var CROSS_CHECK_CONCURRENCY = 2;
+    var CROSS_CHECK_RETRIES = 4;
+    var EPSILON = 0.000001;
+    var XHR_TIMEOUT_MS = 12000;
+
+    function sleep(ms) {
+      return new Promise(function(resolve) { setTimeout(resolve, ms); });
+    }
 
     function escapeHtml(str) {
       return String(str || '')
@@ -324,145 +352,242 @@ stroke-linejoin="round">
         .replace(/"/g, '&quot;');
     }
 
-    function formatNum(num, minDec = 2, maxDec = 6) {
+    function formatNum(num, minDec, maxDec) {
+      if (minDec === undefined) minDec = 2;
+      if (maxDec === undefined) maxDec = 6;
       return Number(num || 0).toLocaleString(undefined, {
         minimumFractionDigits: minDec,
         maximumFractionDigits: maxDec
       });
     }
 
-    const fetchRpcWithFallback = async (bodyPayload) => {
-      const nodes = [
+    // XHR works reliably across file://, content://, and Mobile WebViews (like Hive Keychain)
+    // where fetch() often throws "URL scheme must be http or https" or strict Origin=null errors.
+    function xhrRequest(method, url, bodyStr) {
+      return new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open(method, url, true);
+        xhr.timeout = XHR_TIMEOUT_MS;
+        if (method === 'POST') {
+          xhr.setRequestHeader('Content-Type', 'application/
+json');
+        }
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (parseErr) {
+              reject(new Error('Invalid JSON from ' + url));
+            }
+          } else {
+            reject(new Error('HTTP ' + xhr.status + ' from ' + url));
+          }
+        };
+        xhr.onerror = function() {
+          reject(new Error('Network/CORS blocked on ' + url + ' (Origin: ' + window.location.origin + ')'));
+        };
+        xhr.ontimeout = function() {
+          reject(new Error('Timeout after ' + (XHR_TIMEOUT_MS / 1000) + 's on ' + url));
+        };
+        xhr.send(bodyStr || null);
+      });
+    }
+
+    // Fallback via CORS proxy if Keychain's local file:// / content:// WebView blocks direct XHR
+    function xhrWithCorsProxyFallback(method, url, bodyStr) 
+{
+      return xhrRequest(method, url, bodyStr).catch(function(directErr) {
+        if (method === 'GET') {
+          var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+          return xhrRequest('GET', proxyUrl, null).catch(function() {
+            throw directErr;
+          });
+        }
+        throw directErr;
+      });
+    }
+
+    function fetchRpcWithFallback(bodyPayload) 
+{
+      var nodes = [
         'https://api.hive-engine.com/rpc/contracts',
         'https://herpc.dtools.dev/contracts',
-        'https://api.primersion.com/contracts'
+        'https://api.primersion.com/contracts',
+        'https://engine.rishipanthee.com/contracts'
       ];
-      for (const url of nodes) {
-        try {
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bodyPayload),
-          });
-          if (!response.ok) continue;
-          const json = await response.json();
-          if (json && Array.isArray(json.result)) return json.result;
-        } catch (e) {
-          console.warn('RPC node failed (' + url + '), trying next...', e);
-        }
-      }
-      return [];
-    };
+      var bodyStr = JSON.stringify(bodyPayload);
+      var idx = 0;
+      var lastErr = '';
 
-    const fetchHistoryWithFallback = async (queryString, attempt = 0) => {
-      const nodes = [
+      function tryNext() {
+        if (idx >= nodes.length) {
+          return Promise.resolve({ ok: false, data: [], error: lastErr });
+        }
+        var url = nodes[idx++];
+        return xhrRequest('POST', url, bodyStr).then(function(json) {
+          if (json && Array.isArray(json.result)) {
+            return { ok: true, data: json.result };
+          }
+          lastErr = 'Malformed RPC response from ' + url;
+          return tryNext();
+        }).catch(function(err) {
+          lastErr = err.message || String(err);
+          logDiag('RPC fail: ' + lastErr, 
+'err');
+          return tryNext();
+        });
+      }
+      return tryNext();
+    }
+
+    function fetchHistoryWithFallback(queryString, attempt) {
+      if (attempt === undefined) attempt = 0;
+      var nodes = [
         'https://history.hive-engine.com/accountHistory',
         'https://accounts.hive-engine.com/accountHistory'
       ];
-      for (const baseUrl of nodes) {
-        try {
-          const res = await fetch(baseUrl + '?' + queryString);
-          if (!res.ok) continue;
-          const json = await res.json();
-          if (Array.isArray(json)) return json;
-        } catch (e) {
-          console.warn('History node failed (' + baseUrl + '), trying next...', e);
-        }
-      }
-      if (attempt < CROSS_CHECK_RETRIES - 1) {
-        await sleep(500 * (attempt + 1) * (attempt + 1));
-        return fetchHistoryWithFallback(queryString, attempt + 1);
-      }
-      return null;
-    };
+      var idx = 0;
 
-    const mapWithConcurrency = async (items, limit, worker) => {
-      const results = new Array(items.length);
-      let cursor = 0;
-      const runners = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
-        while (cursor < items.length) {
-          const index = cursor++;
-          try {
-            results[index] = await worker(items[index], index);
-          } catch (err) {
-            results[index] = { error: err };
+      function tryNext() {
+        if (idx >= nodes.length) {
+          if (attempt < CROSS_CHECK_RETRIES - 1) {
+            return sleep(500 * (attempt + 1) * (attempt + 1)).then(function() {
+              return fetchHistoryWithFallback(queryString, attempt + 1);
+            });
           }
+          return Promise.resolve(null);
         }
-      });
-      await Promise.all(runners);
-      return results;
-    };
+        var fullUrl = nodes[idx++] + '?' + queryString;
+        return 
+xhrWithCorsProxyFallback('GET', fullUrl, null).then(function(json) {
+          if (Array.isArray(json)) return json;
+          return tryNext();
+        }).catch(function(err) {
+          logDiag('History fail: ' + (err.message || String(err)), 'err');
+          return tryNext();
+        });
+      }
+      return tryNext();
+    }
 
-    const extractQty = (record) => {
-      const op = String(record.operation || '').toLowerCase();
-      const isMarket = op === 'market_sell' || op === 'market_buy';
-      const keys = isMarket ? ['quantityTokens', 'quantity'] : ['quantity', 'quantityTokens'];
-      for (const key of keys) {
-        const raw = record[key];
+    function mapWithConcurrency(items, limit, worker) {
+      var results = new 
+Array(items.length);
+      var cursor = 0;
+      var count = Math.max(1, Math.min(limit, items.length));
+      var runners = [];
+
+      function runWorker() {
+        if (cursor >= items.length) return Promise.resolve();
+        var index = cursor++;
+        return worker(items[index], index).then(function(res) {
+          results[index] = res;
+          return runWorker();
+        }).catch(function(err) {
+          results[index] = { error: err };
+          return runWorker();
+        });
+      }
+
+      for (var r = 0; r < count; r++) {
+        runners.push(runWorker());
+      }
+      return Promise.all(runners).then(function() { return results; });
+    }
+
+    function extractQty(record) {
+      var op = String(record.operation || '').toLowerCase();
+      var isMarket = op === 'market_sell' || op === 'market_buy';
+      var keys = isMarket ? ['quantityTokens', 'quantity'] : 
+['quantity', 'quantityTokens'];
+      for (var i = 0; i < keys.length; i++) {
+        var raw = record[keys[i]];
         if (raw === undefined || raw === null || raw === '') continue;
-        const num = parseFloat(raw);
+        var num = parseFloat(raw);
         if (!isNaN(num)) return num;
       }
       return 0;
-    };
+    }
 
-    const derivePrice = (record, qty) => {
+    function derivePrice(record, qty) {
       if (record.price !== undefined && record.price !== null && record.price !== '') {
-        const p = parseFloat(record.price);
+        var p = 
+parseFloat(record.price);
         if (!isNaN(p) && p > 0) return p;
       }
       if (record.quantityHive !== undefined && record.quantityHive !== null && qty > 0) {
-        const hive = parseFloat(record.quantityHive);
+        var hive = parseFloat(record.quantityHive);
         if (!isNaN(hive) && hive > 0) {
-          const p = hive / qty;
-          if (p > 0) return p;
+          var p2 = hive / qty;
+          if (p2 > 0) return p2;
         }
       }
       return TRANCHE_1_PRICE;
-    };
+    }
 
-    const txIdsOf = (record) => {
-      const ids = [];
-      if (record.transactionId) 
-ids.push(record.transactionId);
+    function txIdsOf(record) {
+      var ids = [];
+      if (record.transactionId) ids.push(record.transactionId);
       if (record.sellTxId) ids.push(record.sellTxId);
       if (record.buyTxId) ids.push(record.buyTxId);
       return ids;
-    };
+    }
 
-    const fetchRichList = async () => {
-      let allBalances = [];
-      let offset = 0;
-      let hasMore = true;
-      while (hasMore) {
-        const records = await fetchRpcWithFallback({
+    function fetchRichList() {
+      var allBalances = [];
+      var offset = 0;
+      var anyOk = false;
+      var lastErr = '';
+
+      function nextPage() {
+        return fetchRpcWithFallback({
           jsonrpc: '2.0',
           id: 1,
           method: 'find',
-          params: { contract: 'tokens', table: 'balances', query: { symbol: SYMBOL }, limit: RPC_PAGE_SIZE, offset },
+          params: { contract: 'tokens', table: 'balances', query: { symbol: SYMBOL }, limit: RPC_PAGE_SIZE, offset: offset }
+        }).then(function(res) {
+          if (!res.ok) {
+            lastErr = res.error;
+            return;
+          }
+          anyOk = true;
+          allBalances = allBalances.concat(res.data);
+          if (res.data.length >= RPC_PAGE_SIZE) {
+            offset += RPC_PAGE_SIZE;
+            return nextPage();
+          }
         });
-        allBalances = allBalances.concat(records);
-        if (records.length < RPC_PAGE_SIZE) hasMore = false;
-        else offset += RPC_PAGE_SIZE;
       }
-      return allBalances
-        .filter(b => b.account !== SELLER_ACCOUNT && b.account !== 'null')
-        .map(b => ({
-          account: String(b.account || '').toLowerCase(),
-          liquid: parseFloat(b.balance || 0),
-          staked: parseFloat(b.stake || 0),
-          pending: parseFloat(b.pendingUnstake || 0),
-          total: parseFloat(b.balance || 0) + parseFloat(b.stake || 0) + parseFloat(b.pendingUnstake || 0)
-        }))
-        .filter(b => b.total > 0);
-    };
 
-    const fetchRecentTrades = async () => {
-      let allTrades = [];
-      let offset = 0;
-      let hasMore = true;
-      while (hasMore) {
-        const records = await fetchRpcWithFallback({
+      return nextPage().then(function() {
+        if (!anyOk && lastErr) {
+          throw new Error('Hive Keychain WebView blocked direct RPC access (' + lastErr + '). Host this file on GitHub Pages / Netlify or open it in Chrome/Brave.');
+        }
+        logDiag('Loaded ' + allBalances.length + ' rich list entries.', 'ok');
+        return allBalances
+          .filter(function(b) { return b.account !== SELLER_ACCOUNT && b.account !== 'null'; })
+          .map(function(b) {
+            var liquid = parseFloat(b.balance || 0);
+            var staked = parseFloat(b.stake || 0);
+            var pending = parseFloat(b.pendingUnstake || 0);
+            return {
+              account: String(b.account || '').toLowerCase(),
+              liquid: liquid,
+              staked: staked,
+              pending: pending,
+              total: liquid + staked + pending
+            };
+          })
+          .filter(function(b) { return b.total > 0; });
+      });
+    }
+
+    function fetchRecentTrades() {
+      var allTrades = [];
+      var offset = 0;
+
+      function nextPage() {
+        return fetchRpcWithFallback({
           jsonrpc: '2.0',
           id: 1,
           method: 'find',
@@ -471,65 +596,78 @@ ids.push(record.transactionId);
             table: 'tradesHistory',
             query: { symbol: SYMBOL, seller: SELLER_ACCOUNT },
             limit: RPC_PAGE_SIZE,
-            offset
-          },
+            offset: offset
+          }
+        }).then(function(res) {
+          if (!res.ok) return;
+          allTrades = allTrades.concat(res.data);
+          if (res.data.length >= RPC_PAGE_SIZE) {
+            offset += RPC_PAGE_SIZE;
+            return nextPage();
+          }
         });
-        allTrades = allTrades.concat(records);
-        if (records.length < 
-RPC_PAGE_SIZE) hasMore = false;
-        else offset += RPC_PAGE_SIZE;
-      }
-      return allTrades;
-    };
-
-    const fetchAccountHistory = async (account) => {
-      if (historyCache.has(account)) return historyCache.get(account);
-      const records = [];
-      const seen = new Set();
-      let offset = 0;
-      let pages = 0;
-      let failed = false;
-
-      while (pages < MAX_HISTORY_PAGES) {
-        const data = await fetchHistoryWithFallback(
-          'account=' + encodeURIComponent(account) + '&symbol=' + SYMBOL + '&limit=' + HISTORY_PAGE_SIZE + '&offset=' + offset
-        );
-        if (data === null) {
-          failed = true;
-          break;
-        }
-        if (data.length === 0) break;
-
-        let added = 0;
-        for (const rec of data) {
-          const id = rec._id || (rec.timestamp + '_' + rec.operation 
-+ '_' + rec.transactionId);
-          if (seen.has(id)) continue;
-          seen.add(id);
-          records.push(rec);
-          added++;
-        }
-        pages++;
-        offset += data.length;
-        if (data.length < HISTORY_PAGE_SIZE && added === 0) break;
       }
 
-      const result = { records, failed };
-      if (!failed) historyCache.set(account, result);
-      return result;
-    };
+      return nextPage().then(function() {
+        logDiag('Loaded ' + allTrades.length + ' RPC market trades.', 'ok');
+        return allTrades;
+      });
+    }
+
+    function fetchAccountHistory(account) {
+      if (historyCache[account]) return Promise.resolve(historyCache[account]);
+      var records = [];
+      var seen = {};
+      var offset = 0;
+      var pages = 0;
+      var failed = false;
+
+      function nextPage() {
+        if (pages >= MAX_HISTORY_PAGES) return Promise.resolve();
+        var qs = 'account=' + encodeURIComponent(account) + '&symbol=' + SYMBOL + '&limit=' + HISTORY_PAGE_SIZE + '&offset=' + offset;
+        return fetchHistoryWithFallback(qs).then(function(data) {
+          if (data === null) {
+            failed = true;
+            return;
+          }
+          if (data.length === 0) return;
+
+          var added = 0;
+          for (var i = 0; i < data.length; i++) {
+            var rec = data[i];
+            var id = rec._id || (rec.timestamp + '_' + rec.operation + '_' + rec.transactionId);
+            if (seen[id]) continue;
+            seen[id] = true;
+            records.push(rec);
+            added++;
+          }
+          pages++;
+          offset += data.length;
+          if (data.length < HISTORY_PAGE_SIZE && added === 
+0) return;
+          return nextPage();
+        });
+      }
+
+      return nextPage().then(function() {
+        var result = { records: records, failed: failed };
+        if (!failed) historyCache[account] = result;
+        return result;
+      });
+    }
 
     function setLoadingState(isLoading, msg) {
-      const btn = document.getElementById('auditBtn');
-      const icon = document.getElementById('auditIcon');
-      const btnText = document.getElementById('auditBtnText');
-      const loadingBox = document.getElementById('loadingBox');
-      const mainContent = document.getElementById('mainContent');
-      const loadingMsg = 
-document.getElementById('loadingMsg');
+      var btn = document.getElement
+ById('auditBtn');
+      var icon = document.getElementById('auditIcon');
+      var btnText = document.getElementById('auditBtnText');
+      var loadingBox = document.getElementById('loadingBox');
+      var mainContent = document.getElementById('mainContent');
+      var loadingMsg = document.getElementById('loadingMsg');
 
       btn.disabled = isLoading;
-      if (isLoading) {
+      if (isLoading) 
+{
         icon.classList.add('spin');
         btnText.textContent = 'Reconciling...';
         loadingBox.classList.remove('hidden');
@@ -537,173 +675,176 @@ document.getElementById('loadingMsg');
         if (msg) loadingMsg.textContent = msg;
       } else {
         icon.classList.remove('spin');
-        btnText.textContent = 'Audit 
-Supply';
+        btnText.textContent = 'Audit Supply';
         loadingBox.classList.add('hidden');
-        mainContent.classList.remove('hidden');
-      }
+      
+}
     }
 
     function renderUI(finalLedger, pricePoints, stats, quality) {
-      const qualityBar = document.getElementById('qualityBar');
-      let qHtml =
-        '<span><strong>' + quality.historyRecords + '</strong> seller history records indexed</span>' 
-+
+      var qualityBar = document.getElementById('qualityBar');
+      var qHtml =
+        '<span><strong>' + quality.historyRecords + '</strong> seller history records indexed</span>' +
         '<span><strong>' + quality.accountsChecked + '</strong> account histories cross-checked</span>' +
-        '<span><strong>' + quality.recoveredByCrossCheck + '</strong> sales recovered via buyer history</span>' +
+        '<span><strong>' + quality.recoveredByCrossCheck + 
+'</strong> sales recovered via buyer history</span>' +
         '<span><strong>' + quality.otherSellerInflowTotal.toFixed(6) + '</strong> ELIXIR excluded (bought from other sellers)</span>';
       if (quality.crossCheckFailed > 0) {
-        qHtml += '<span class="text-amber"><strong>' + quality.crossCheckFailed + '</strong> account histories failed 
-to load</span>';
+        qHtml += '<span class="text-amber"><strong>' + quality.crossCheckFailed + '</strong> account histories failed to load</span>';
       }
       if (quality.sellerHistoryFailed) {
-        qHtml += '<span style="color:#f87171;"><strong>Seller history failed to load</strong> - ledger may be incomplete</span>';
+        qHtml += '<span style="color:#f87171;"><strong>Seller history failed to load</strong> - ledger may be 
+incomplete</span>';
       }
       qualityBar.innerHTML = qHtml;
 
-      const cards = [
+      var cards = [
         {
           title: 'Public Supply',
           value: stats.totalPublicHeld,
           subtext: 'Liquid + Staked + Pending',
           color: 'text-indigo',
-          highlight: 
-false,
+          highlight: false,
           icon: '<ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5V19A9 3 0 0 0 21 19V5"></path><path d="M3 12A9 3 0 0 0 21 12"></path>'
         },
-        {
+        
+{
           title: 'Delegation Payments',
           value: stats.totalRewards,
           subtext: 'Direct transfers / airdrops',
           color: 'text-purple',
           highlight: false,
-          icon: '<rect x="3" y="8" width="18" height="4" rx="1"></rect><path d="M12 8v13"></path><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 
-1-2-2v-7"></path><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"></path>'
+          icon: '<rect x="3" y="8" width="18" height="4" rx="1"></rect><path d="M12 8v13"></path><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"></path><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"></path>'
         },
         {
           title: 'Traced Market Sells',
-          value: stats.totalTracedMarket,
+          value: 
+stats.totalTracedMarket,
           subtext: 'Found in RPC/History',
           color: 'text-cyan',
           highlight: false,
           icon: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path>'
-        
-},
+        },
         {
           title: 'Pruned Sales Recovered',
           value: stats.totalReconstructed,
           subtext: 'Reconstructed from balances',
           color: 'text-amber',
-          highlight: stats.totalReconstructed > 0,
+          highlight: 
+stats.totalReconstructed > 0,
           icon: '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>'
         },
         {
           title: 'Total Confirmed Sold',
-          value: 
-stats.totalCalculatedSold,
+          value: stats.totalCalculatedSold,
           subtext: 'Guaranteed market volume',
           color: 'text-emerald',
           highlight: false,
-          icon: '<circle cx="8" cy="8" r="6"></circle><path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path><path d="M7 6h1v4"></path><path d="m16.71 13.88.7.71-2.82 2.82"></path>'
+          icon: '<circle cx="8" cy="8" r="6"></circle><path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path><path d="M7 
+6h1v4"></path><path d="m16.71 13.88.7.71-2.82 2.82"></path>'
         }
       ];
 
-      document.getElementById('statsGrid').innerHTML = cards.map(c =>
-        '<div class="stat-card' + (c.highlight ? ' highlight' : '') + '">' 
-+
+      document.getElementById('statsGrid').innerHTML = cards.map(function(c) {
+        return '<div class="stat-card' + (c.highlight ? ' highlight' : '') + '">' +
           '<div class="stat-header">' +
             '<span class="stat-title">' + c.title + '</span>' +
             '<div class="stat-icon ' + c.color + '">' +
-              '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + c.icon + '</svg>' +
+              '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + c.icon + '</svg>' +
             '</div>' +
           '</div>' +
           '<div>' +
             '<div class="stat-value ' + c.color + '">' + formatNum(c.value) + '</div>' +
-            '<div class="stat-subtext">' 
-+ c.subtext + '</div>' +
+            '<div class="stat-subtext">' + c.subtext + '</div>' +
           '</div>' +
-        '</div>'
-      ).join('');
+        '</div>';
+      }).join('');
 
-      document.getElementById('trancheGrid').innerHTML = pricePoints.map(pt =>
-        '<div class="tranche-card">' +
+      document.getElementById('trancheGrid').innerHTML = 
+pricePoints.map(function(pt) {
+        return '<div class="tranche-card">' +
           '<div class="tranche-label">Sale Price (HIVE)</div>' +
           '<div class="tranche-price">' + escapeHtml(pt.price) + '</div>' +
           '<div class="tranche-footer">' +
             '<div class="tranche-vol-label">Total Volume Sold</div>' +
-            '<div class="tranche-vol">' + 
-formatNum(pt.amount) + ' ELIXIR</div>' +
+            '<div class="tranche-vol">' + formatNum(pt.amount) + ' ELIXIR</div>' +
           '</div>' +
-        '</div>'
-      ).join('');
+        '</div>';
+      }).join('');
 
-      document.getElementById('ledgerHeading').textContent = 'Unified Sales Ledger (' + finalLedger.length + ' operations)';
+      document.getElementById('led
+gerHeading').textContent = 'Unified Sales Ledger (' + finalLedger.length + ' operations)';
 
-      document.getElementById('ledgerBody').innerHTML = finalLedger.map(row => {
-        const isRecon = row.source === 'Rich List Reconciliation';
-        const isReward = row.type === 
-'DELEGATION PAYMENT';
-        const dateClass = isRecon ? 'text-amber-muted' : 'text-slate-400';
-        const typeClass = isRecon ? 'text-amber' : (isReward ? 'text-purple' : 'text-emerald');
-        const priceText = row.price === 0 ? 'OTC' : row.price.toFixed(8);
-        const totalText = row.price === 0 ? '-' : row.totalHive.toFixed(8);
+      document.getElementById('ledgerBody').innerHTML = finalLedger.map(function(row) {
+        var isRecon = row.source === 'Rich List Reconciliation';
+        var isReward = row.type === 'DELEGATION PAYMENT';
+        var dateClass = isRecon ? 'text-amber-muted' : 'text-slate-400';
+        var typeClass = isRecon ? 'text-amber' : (isReward ? 'text-purple' : 'text-emerald');
+        var priceText = row.price === 0 ? 'OTC' : row.price.toFixed(8);
+        var totalText = row.price === 0 ? '-' : row.totalHive.toFixed(8);
 
         return '<tr class="' + (isRecon ? 'reconstructed' : '') + '">' +
           '<td class="' + dateClass + '">' + escapeHtml(row.date) + '</td>' +
           '<td class="font-bold ' + typeClass + '">' + escapeHtml(row.type) + '</td>' +
-          '<td class="text-slate-200">@' 
-+ escapeHtml(row.buyer) + '</td>' +
+          '<td class="text-slate-200">@' + escapeHtml(row.buyer) + '</td>' +
           '<td class="text-slate-400 truncate" title="' + escapeHtml(row.memo) + '">' + escapeHtml(row.memo || 'None') + '</td>' +
-          '<td class="text-right text-emerald mono font-medium">' + formatNum(row.quantity, 6, 6) + '</td>' +
+          '<td class="text-right 
+text-emerald mono font-medium">' + formatNum(row.quantity, 6, 6) + '</td>' +
           '<td class="text-right text-slate-300 mono">' + priceText + '</td>' +
           '<td class="text-right text-cyan mono font-medium">' + totalText + '</td>' +
         '</tr>';
       }).join('');
 
-      const noteBox = document.getEl
-ementById('reconstructedNote');
+      var noteBox = document.getElementById('reconstructedNote');
       if (stats.totalReconstructed > 0) noteBox.classList.remove('hidden');
       else noteBox.classList.add('hidden');
+
+      document.getElementById('mainContent').classList.remove('hidden');
     }
 
-    async function processData() {
-      const errorBox = document.getElementById('errorBox');
+    function processData() {
+      var errorBox = document.getElementById('errorBox');
+      var diagLog = document.getElementById('diagLog');
       errorBox.classList.add('hidden');
-      setLoadingState(true, 'Fetching Rich List, RPC Market Trades, and Deep History concurrently...');
+      diagLog.innerHTML = '';
+      logDiag('Environment protocol: ' + window.location.protocol);
+      setLoadingState(true, 'Fetching Rich List, RPC Market Trades, and Deep History...');
 
-      try {
-        const [richListRaw, recentTrades, sellerHistory] = await 
-Promise.all([
-          fetchRichList(),
-          fetchRecentTrades(),
-          fetchAccountHistory(SELLER_ACCOUNT)
-        ]);
-        const deepHistory = sellerHistory.records;
-        const sellerHistoryFailed = sellerHistory.failed;
+      Promise.all([
+        fetchRichList(),
+        fetchRecentTrades(),
+        fetchAccountHistory(SELLER_ACCOUNT)
+      ]).then(function(results) {
+        var richListRaw = results[0];
+        var recentTrades = results[1];
+        var sellerHistory = results[2];
+        var deepHistory = sellerHistory.records;
+        var sellerHistoryFailed = sellerHistory.failed;
 
-        document.getElementById('loadingMsg').textContent = 'Reconciling ledgers and mathematically verifying supply...';
+        logDiag('Seller history loaded: ' + deepHistory.length + ' records.', sellerHistoryFailed ? 'err' : 'ok');
+        document.getElementById('loadingMsg').textContent = 'Reconciling ledgers and verifying supply...';
 
-        const sellerLower = SELLER_ACCOUNT.toLowerCase();
-        const richList = richListRaw.map(user => {
+        var sellerLower = SELLER_ACCOUNT.toLowerCase();
+        var richList = richListRaw.map(function(user) {
           if (user.account === 'bulliontools') {
-            return { ...user, total: Math.max(0, user.total - 50) };
+            return Object.assign({}, user, { total: Math.max(0, user.total - 50) });
           }
           return user;
-        }).filter(user => user.total > 0);
+        }).filter(function(user) { return user.total > 0; });
 
-        const ledgerMap = new Map();
-        let totalPublicHeld = 0;
-        richList.forEach(user => { totalPublicHeld += user.total; });
+        var ledgerMap = {};
+        var totalPublicHeld = 0;
+        richList.forEach(function(user) { totalPublicHeld += user.total; });
 
-        recentTrades.forEach((trade, idx) => {
-          const buyer = 
-String(trade.buyer || '').toLowerCase();
-          const qty = parseFloat(trade.quantity || 0);
-          const price = parseFloat(trade.price || 0);
-          const timestamp = Number(trade.timestamp || 0);
-          const key = 'RPC_' + buyer + '_' + qty.toFixed(6) + '_' + timestamp + '_' + (trade._id || idx);
+        recentTrades.forEach(function(trade, idx) {
+          var buyer = String(trade.buyer || '').toLowerCase();
+          var qty = parseFloat(trade.quantity || 0);
+          var price = parseFloat(trade.price || 0);
+          var timestamp = Number(trade.timestamp || 0);
+          var key = 'RPC_' + buyer + '_' + qty.toFixed(6) + '_' + timestamp + '_' + (trade._id || idx);
 
-          ledgerMap.set(key, {
+          ledgerMap[key] = {
             id: key,
             date: new Date(timestamp * 1000).toLocaleString(),
             timestamp: timestamp,
@@ -716,38 +857,36 @@ String(trade.buyer || '').toLowerCase();
             source: 'RPC Market',
             memo: 'Order Book Fill',
             txIds: txIdsOf(trade)
-          });
+          };
         });
 
-        deepHistory.forEach((record, idx) => {
-          const op = String(record.operation || '').toLowerCase();
-          const isTransferType = op.includes('transfer') || 
-op.includes('issue');
-          const isMarketType = op === 'market_sell';
+        deepHistory.forEach(function(record, idx) {
+          var op = String(record.operation || '').toLowerCase();
+          var isTransferType = op.indexOf('transfer') !== -1 || op.indexOf('issue') !== -1;
+          var isMarketType = op === 'market_sell';
 
-          const accountUser = String(record.account || '').toLowerCase();
-          const fromUser = String(record.from || record.sender || accountUser || '').toLowerCase();
-          const toUser = String(record.to || record.receiver || record.buyer || '').toLowerCase();
-          const qty = extractQty(record);
-          const timestamp = 
-Number(record.timestamp || 0);
-          const memo = record.memo || '';
+          var accountUser = String(record.account || '').toLowerCase();
+          var fromUser = String(record.from || record.sender || accountUser || '').toLowerCase();
+          var toUser = String(record.to || record.receiver || record.buyer || '').toLowerCase();
+          var qty = extractQty(record);
+          var timestamp = Number(record.timestamp || 0);
+          var memo = record.memo || '';
 
           if (
             isTransferType &&
             memo.trim().toLowerCase() === 'test' &&
-            Math.abs(qty - 50) < EPSILON &&
+            Math.abs(qty - 50) < EPSILON 
+&&
             (fromUser === 'bulliontools' || toUser === 'bulliontools')
           ) {
             return;
           }
 
-          const isOutbound = fromUser === sellerLower || accountUser === 
-sellerLower;
+          var isOutbound = fromUser === sellerLower || accountUser === sellerLower;
 
           if (isTransferType && isOutbound && toUser && toUser !== sellerLower && qty > 0) {
-            const key = 'DELEG_' + toUser + '_' + qty.toFixed(6) + '_' + timestamp + '_' + idx;
-            ledgerMap.set(key, {
+            var key = 'DELEG_' + toUser + '_' + qty.toFixed(6) + '_' + timestamp + '_' + idx;
+            ledgerMap[key] = {
               id: key,
               date: new Date(timestamp * 1000).toLocaleString(),
               timestamp: timestamp,
@@ -760,19 +899,22 @@ sellerLower;
               source: 'Blockchain Transfer',
               memo: memo ? 'Transfer: ' + memo : 'Delegation Payment (No Memo)',
               txIds: txIdsOf(record)
-            });
+            };
           }
 
           if (isMarketType && isOutbound && qty > 0) {
-            const price = derivePrice(record, qty);
-            const recordTxIds = txIdsOf(record);
-            let isDuplicate = false;
-            for (const val of ledgerMap.values()) {
+            var price = derivePrice(record, qty);
+            var recordTxIds = txIdsOf(record);
+            var isDuplicate = false;
+            var mapKeys = Object.keys(ledgerMap);
+            for (var k = 0; k < mapKeys.length; k++) {
+              var val = ledgerMap[mapKeys[k]];
               if (val.source !== 'RPC Market') continue;
-              const sameBuyer = !toUser || val.buyer === toUser;
-              const sameQty = Math.abs(val.quantity - qty) < EPSILON;
-              const sameTime = Math.abs(val.timestamp - timestamp) <= 120;
-              const sameTx = recordTxIds.length > 0 && val.txIds && recordTxIds.some(t => val.txIds.includes(t));
+              var sameBuyer = !toUser || 
+val.buyer === toUser;
+              var sameQty = Math.abs(val.quantity - qty) < EPSILON;
+              var sameTime = Math.abs(val.timestamp - timestamp) <= 120;
+              var sameTx = recordTxIds.length > 0 && val.txIds && recordTxIds.some(function(t) { return val.txIds.indexOf(t) !== -1; });
               if (sameTx || (sameBuyer && sameQty && sameTime)) {
                 isDuplicate = true;
                 break;
@@ -780,9 +922,9 @@ sellerLower;
             }
 
             if (!isDuplicate) {
-              const key = 'HIST_' + (toUser || 'unknown') + '_' + qty.toFixed(6) + '_' + timestamp + '_' + idx;
-              ledgerMap.set(key, {
-                id: key,
+              var key2 = 'HIST_' + (toUser || 'unknown') + '_' + qty.toFixed(6) + '_' + timestamp + '_' + idx;
+              ledgerMap[key2] = {
+                id: key2,
                 date: new Date(timestamp * 1000).toLocaleString(),
                 timestamp: timestamp,
                 type: 'BUY (HIST)',
@@ -794,212 +936,238 @@ sellerLower;
                 source: 'History Node',
                 memo: 'Order Book Match',
                 txIds: recordTxIds
-              });
+              };
             }
           }
         });
 
-        const tracedByAccount = {};
-        ledgerMap.forEach(trade => {
+        var tracedByAccount = {};
+        Object.keys(ledgerMap).forEach(function(k) {
+          var trade = ledgerMap[k];
           if (trade.buyer && trade.buyer !== 'UNKNOWN') {
-            tracedByAccount[trade.buyer] = 
-(tracedByAccount[trade.buyer] || 0) + trade.quantity;
+            tracedByAccount[trade.buyer] = (tracedByAccount[trade.buyer] || 
+0) + trade.quantity;
           }
         });
 
-        const candidateAccounts = new Set();
-        deepHistory.forEach(record => {
+        var candidateSet = {};
+        deepHistory.forEach(function(record) {
           if (String(record.operation || '').toLowerCase() !== 'market_sell') return;
-          const buyer = String(record.to || '').toLowerCase();
-          if (buyer) candidateAccounts.add(buyer);
+          var buyer = String(record.to || '').toLowerCase();
+          if (buyer) candidateSet[buyer] = true;
         });
-        richList.forEach(user => candid
-ateAccounts.add(user.account));
+        richList.forEach(function(user) { candidateSet[user.account] = 
+true; });
 
-        document.getElementById('loadingMsg').textContent = 'Cross-checking ' + candidateAccounts.size + ' account histories for unindexed sells...';
+        var accountList = Object.keys(candidateSet);
+        document.getElementById('loadingMsg').textContent = 'Cross-checking ' + accountList.length + ' account histories...';
+        logDiag('Cross-checking ' + accountList.length + ' buyer/holder accounts...');
 
-        const otherSellerInflow = {};
-        let crossCheckFailed = 0;
-        let recoveredByCrossCheck = 0;
+        function checkAccount(account) {
+          return fetchAccountHistory(account).then(function(res) {
+            if (res.failed) return { account: account, failed: true, buys: [], otherIn: 0 };
 
-        const checkAccount = async (account) => {
-          const { records, failed } = await fetchAccountHistory(account);
-          if (failed) return { account, 
-failed: true, buys: [], otherIn: 0 };
+            var buys = [];
+            var otherIn = 0;
 
-          const buys = [];
-          let otherIn = 0;
+            (res.records || []).forEach(function(rec) {
+              var op = String(rec.operation || '').toLowerCase();
+              var qty = extractQty(rec);
+              if (qty <= 0) return;
 
-          (records || []).forEach(rec => {
-            const op = String(rec.operation || '').toLowerCase();
-            const qty = extractQty(rec);
-            if (qty <= 0) return;
-
-            if (op === 'market_buy') {
-              const from = String(rec.from || '').toLowerCase();
-              if (from === sellerLower) {
-                buys.push({
-                  qty: qty,
-                  timestamp: Number(rec.timestamp || 0),
-                  price: derivePrice(rec, qty),
-                  txIds: txIdsOf(rec)
-                });
-              } else {
-                otherIn += qty;
+              if (op === 'market_buy') {
+                var from = String(rec.from || '').toLowerCase();
+                if (from === sellerLower) {
+                  buys.push({
+                    qty: qty,
+                    timestamp: Number(rec.timestamp || 0),
+                    price: derivePrice(rec, qty),
+                    txIds: txIdsOf(rec)
+                  });
+                } else {
+                  otherIn += qty;
+                }
+              } else if (op.indexOf('transfer') !== -1) {
+                var to = String(rec.to || '').toLowerCase();
+                var from2 = String(rec.from || 
+'').toLowerCase();
+                if (to === account && from2 && from2 !== sellerLower) {
+                  otherIn += qty;
+                }
               }
-            } else if (op.includes('transfer')) {
-              const to = String(rec.to || '').toLowerCase();
-              const from = String(rec.from || '').toLowerCase();
-              if (to === account && from && from !== sellerLower) {
-                otherIn += qty;
-              }
-            }
+            });
+
+            return { account: account, failed: false, buys: buys, otherIn: otherIn };
           });
-
-          return { account, failed: false, buys, otherIn };
-        };
-
-        const accountList = Array.from(candidateAccounts);
-        const crossCheckResults = await mapWithConcurrency(accountList, CROSS_CHECK_CONCURRENCY, checkAccount);
-
-        for (let i = 0; i < crossCheckResults.length; i++) {
-          const res = crossCheckResults[i];
-          if (res && !res.failed && !res.error) continue;
-          await sleep(750);
-          try {
-            crossCheckResults[i] = await checkAccount(res && res.account ? res.account : accountList[i]);
-          } catch (err) {
-            crossCheckResults[i] = { account: accountList[i], failed: true, buys: [], otherIn: 0 };
-          }
         }
 
-        crossCheckResults.forEach(result => {
-          if (!result || result.error || result.failed) {
-            crossCheckFailed++;
-            return;
-          }
-          if (result.otherIn > 0) {
-            otherSellerInflow[result.account] = (otherSellerInflow[result.account] || 0) + result.otherIn;
-          }
-
-          result.buys.forEach((buy, bIdx) => {
-            let alreadyExists = false;
-            for (const val of ledgerMap.values()) {
-              if (!val.type.startsWith('BUY')) continue;
-              const sameTx = buy.txIds.length > 0 && val.txIds && buy.txIds.some(t => val.txIds.includes(t));
-              const sameBuyer = val.buyer === result.account;
-              const sameQty = Math.abs(val.quantity - buy.qty) < EPSILON;
-              const sameTime = Math.abs(val.timestamp - buy.timestamp) <= 2;
-              if (sameTx || (sameBuyer && sameQty && sameTime)) {
-                alreadyExists = true;
-                break;
-              }
-            }
-
-            if (!alreadyExists) {
-              const key = 'BUYER_' + result.account + '_' + buy.qty.toFixed(6) + '_' + buy.timestamp + '_' + bIdx;
-              ledgerMap.set(key, {
-                id: key,
-                date: new Date(buy.timestamp * 1000).toLocaleString(),
-                timestamp: 
-buy.timestamp,
-                type: 'BUY (HIST)',
-                buyer: result.account,
-                seller: SELLER_ACCOUNT,
-                quantity: buy.qty,
-                price: buy.price,
-                totalHive: buy.qty * buy.price,
-                source: 'Buyer History Node',
-                memo: 'Order Book Fill (Buyer Verified)',
-                txIds: buy.txIds
+        return mapWithConcurrency(accountList, CROSS_CHECK_CONCURRENCY, checkAccount).then(fun
+ction(crossCheckResults) {
+          var retryChain = Promise.resolve();
+          crossCheckResults.forEach(function(res, i) {
+            if (res && !res.failed && !res.error) return;
+            retryChain = retryChain.then(function() {
+              return sleep(750).then(function() {
+                var acct = (res && res.account) ? res.account : accountList[i];
+                return checkAccount(acct).then(function(retryRes) 
+{
+                  crossCheckResults[i] = retryRes;
+                }).catch(function() {
+                  crossCheckResults[i] = { account: acct, failed: true, buys: [], otherIn: 0 };
+                });
               });
-              recoveredByCrossCheck++;
-              tracedByAccount[result.account] = (tracedByAccount[result.account] 
-|| 0) + buy.qty;
-            }
+            });
+          });
+
+          return retryChain.then(function() {
+            var otherSellerInflow = {};
+            var crossCheckFailed = 0;
+            var recoveredByCrossCheck = 0;
+
+            crossCheckResults.forEach(function(result) {
+              if (!result || result.error || result.failed) {
+                crossCheckFailed++;
+                return;
+              }
+              if (result.otherIn > 0) {
+                otherSellerInflow[result.account] = (otherSellerInflow[result.account] || 0) + result.otherIn;
+              }
+
+              result.buys.forEach(function(buy, 
+bIdx) {
+                var alreadyExists = false;
+                var mapKeys = Object.keys(ledgerMap);
+                for (var k = 0; k < mapKeys.length; k++) {
+                  var val = ledgerMap[mapKeys[k]];
+                  if (val.type.indexOf('BUY') !== 0) continue;
+                  var sameTx = buy.txIds.length > 0 && val.txIds && buy.txIds.some(function(t) { return val.txIds.indexOf(t) !== -1; });
+                  var sameBuyer = val.buyer === result.account;
+                  var sameQty = 
+Math.abs(val.quantity - buy.qty) < EPSILON;
+                  var sameTime = Math.abs(val.timestamp - buy.timestamp) <= 2;
+                  if (sameTx || (sameBuyer && sameQty && sameTime)) {
+                    alreadyExists = true;
+                    break;
+                  }
+                }
+
+                if (!alreadyExists) {
+                  var key = 'BUYER_' + result.account + '_' + buy.qty.toFixed(6) + '_' + buy.timestamp + '_' + bIdx;
+                  ledgerMap[key] = {
+                    id: key,
+                    date: new Date(buy.timestamp * 1000).toLocaleString(),
+                    timestamp: buy.timestamp,
+                    type: 'BUY (HIST)',
+                    buyer: result.account,
+                    seller: SELLER_ACCOUNT,
+                    quantity: buy.qty,
+                    price: buy.price,
+                    totalHive: buy.qty * buy.price,
+                    source: 'Buyer History Node',
+                    memo: 'Order Book Fill (Buyer Verified)',
+                    txIds: buy.txIds
+                  };
+                  recoveredByCrossCheck++;
+                  tracedByAccount[result.account] = (tracedByAccount[result.account] || 0) + buy.qty;
+                }
+              });
+            });
+
+            var totalReconstructed = 0;
+            richList.forEach(function(user) {
+              var trueBalance = user.total;
+              var tracedBalance = 
+tracedByAccount[user.account] || 0;
+              var otherIn = otherSellerInflow[user.account] || 0;
+              var verified = crossCheckResults.some(function(r) { return r && !r.error && !r.failed && r.account === user.account; });
+              var gap = trueBalance - tracedBalance - otherIn;
+
+              if (gap > EPSILON) {
+                totalReconstructed += gap;
+                var key = 'RECON_' + user.account + '_' + gap.toFixed(6);
+                ledgerMap[key] = {
+                  id: key,
+                  date: 'Historical (Pruned by API)',
+                  timestamp: 0,
+                  type: 'BUY (RECONSTRUCTED)',
+                  buyer: user.account,
+                  seller: SELLER_ACCOUNT,
+                  quantity: gap,
+                  price: TRANCHE_1_PRICE,
+                  totalHive: gap * TRANCHE_1_PRICE,
+                  source: 'Rich List Reconciliation',
+                  memo: verified ? 'Pruned by Node (Assumed Sale)' : 'Pruned by Node (Assumed Sale, Account Unverified)',
+                  txIds: []
+                };
+              }
+            });
+
+            var finalLedger = Object.keys(ledgerMap).map(function(k) { return ledgerMap[k]; });
+            var priceMap = {};
+            var totalTracedMarket = 0;
+            var totalRewards = 0;
+
+            finalLedger.forEach(function(row) {
+              if (row.price > 0) {
+                var p = row.price.toFixed(4);
+                priceMap[p] = (priceMap[p] || 0) + row.quantity;
+              }
+              if (row.type === 'DELEGATION PAYMENT') {
+                totalRewards += row.quantity;
+              } else if (row.source !== 'Rich List Reconciliation') {
+                totalTracedMarket += row.quantity;
+              }
+            });
+
+            finalLedger.sort(function(a, b) { return b.timestamp - a.timestamp; });
+
+            var pricePoints = Object.keys(priceMap)
+              .map(function(price) { return { price: price, amount: priceMap[price] }; })
+              .sort(function(a, b) { return parseFloat(a.price) - parseFloat(b.price); });
+
+            var stats = {
+              totalPublicHeld: totalPublicHeld,
+              totalTracedMarket: totalTracedMarket,
+              totalReconstructed: totalReconstructed,
+              totalRewards: totalRewards,
+              totalCalculatedSold: totalTracedMarket + totalReconstructed
+            };
+
+            var quality = {
+              historyRecords: deepHistory.length,
+              sellerHistoryFailed: sellerHistoryFailed,
+              accountsChecked: accountList.length,
+              crossCheckFailed: crossCheckFailed,
+              recoveredByCrossCheck: recoveredByCrossCheck,
+              otherSellerInflowTotal: Object.keys(otherSellerInflow).red
+uce(function(acc, k) { return acc + otherSellerInflow[k]; }, 0)
+            };
+
+            logDiag('Reconciliation complete. Rendering ' + finalLedger.length + ' ledger entries.', 'ok');
+            setLoadingState(false);
+            renderUI(finalLedger, pricePoints, stats, quality);
           });
         });
-
-        let totalReconstructed = 0;
-        richList.forEach(user => {
-          const trueBalance = user.total;
-          const tracedBalance = tracedByAccount[user.account] || 0;
-          const otherIn = otherSellerInflow[user.account] || 0;
-          const verified = crossCheckResults.some(r => r && !r.error && !r.failed && r.account === user.account);
-          const gap = trueBalance - tracedBalance - otherIn;
-
-          if (gap > EPSILON) {
-            totalReconstructed += gap;
-            const key = 'RECON_' + user.account + '_' + gap.toFixed(6);
-            ledgerMap.set(key, {
-              id: key,
-              date: 'Historical (Pruned by API)',
-              timestamp: 0,
-              type: 'BUY (RECONSTRUCTED)',
-              buyer: user.account,
-              seller: SELLER_ACCOUNT,
-              quantity: gap,
-              price: TRANCHE_1_PRICE,
-              totalHive: gap * TRANCHE_1_PRICE,
-              source: 'Rich List Reconciliation',
-              memo: verified ? 'Pruned by Node (Assumed Sale)' : 'Pruned by Node (Assumed Sale, Account Unverified)',
-              txIds: []
-            });
-          }
-        });
-
-        const finalLedger = Array.from(ledgerMap.values());
-        const priceMap = {};
-        let totalTracedMarket = 0;
-        let totalRewards = 0;
-
-        finalLedger.forEach(row => {
-          if (row.price > 0) {
-            const p = row.price.toFixed(4);
-            priceMap[p] = (priceMap[p] || 0) + row.quantity;
-          }
-          if (row.type === 'DELEGATION PAYMENT') {
-            totalRewards += row.quantity;
-          } else if (row.source !== 'Rich List Reconciliation') {
-            totalTracedMarket += row.quantity;
-          }
-        });
-
-        finalLedger.sort((a, b) => b.timestamp - a.timestamp);
-
-        const pricePoints = Object.entries(priceMap)
-          .map(([price, amount]) => ({ price, amount }))
-          .sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
-
-        const stats = {
-          totalPublicHeld,
-          totalTracedMarket,
-          totalReconstructed,
-          totalRewards,
-          totalCalculatedSold: 
-totalTracedMarket + totalReconstructed
-        };
-
-        const quality = {
-          historyRecords: deepHistory.length,
-          sellerHistoryFailed,
-          accountsChecked: candidateAccounts.size,
-          crossCheckFailed,
-          recoveredByCrossCheck,
-          otherSellerInflowTotal: Object.values(otherSellerInflow).reduce((a, b) => a + b, 0)
-        };
-
-        renderUI(finalLedger, pricePoints, stats, quality);
-      } catch (err) {
-        console.error(err);
-        document.getElementById('errorMsg').textContent = err.message || 'Failed to aggregate data.';
+      }).catch(function(err) {
+        var msg = err && err.message ? err.message : 'Failed to aggregate data.';
+        document.getElementB
+yId('errorMsg').innerHTML =
+          '<strong>Hive Keychain WebView Restriction:</strong> ' + escapeHtml(msg) +
+          '<br><br><strong>Why this happens:</strong> Hive Keychain opens local HTML files using a restricted <code>file://</code> or <code>content://</code> origin, which causes its built-in WebView to block external POST API calls to Hive-Engine.' +
+          '<br><strong>How to run it:</strong> Open this file in your phone/desktop <strong>Chrome, Safari, or Brave</strong> browser, or host it on a free HTTPS URL (like 
+GitHub Pages or Netlify) and open that URL inside Hive Keychain.';
         errorBox.classList.remove('hidden');
-      } finally {
         setLoadingState(false);
-      }
+      });
     }
 
-    document.addEventListener('DOMContentLoaded', processData);
+    document.getElementById('auditBtn').addEventListener('click', processData);
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', processData);
+    } else {
+      processData();
+    }
   </script>
 </body>
 </html>
