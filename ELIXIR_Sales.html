@@ -19,7 +19,7 @@
 
   <script type="text/babel">
     const { useState, useEffect } = React;
-    
+
     // Simple helper components for Lucide icons in a standalone environment
     const RefreshCcw = (props) => <i data-lucide="refresh-ccw" {...props}></i>;
     const AlertCircle = (props) => <i data-lucide="alert-circle" {...props}></i>;
@@ -31,6 +31,10 @@
     const Search = (props) => <i data-lucide="search" {...props}></i>;
     const Gift = (props) => <i data-lucide="gift" {...props}></i>;
 
+    // Buyer history is cached outside the component so pressing "Audit Supply"
+    // again does not hammer the history node with the same requests.
+    const historyCache = new Map();
+
     function App() {
       const [data, setData] = useState({
         history: [],
@@ -41,9 +45,10 @@
         totalPublicHeld: 0,
         totalTracedMarket: 0,
         totalReconstructed: 0,
-        totalCalculatedSold: 0,
         totalRewards: 0,
+        totalCalculatedSold: 0
       });
+      const [quality, setQuality] = useState(null);
       const [loading, setLoading] = useState(true);
       const [loadingMsg, setLoadingMsg] = useState('Initializing...');
       const [error, setError] = useState(null);
@@ -51,6 +56,18 @@
       const SELLER_ACCOUNT = 'nectarbytes';
       const SYMBOL = 'ELIXIR';
       const TRANCHE_1_PRICE = 1.0;
+
+      // The Hive Engine history node hard-caps every response at 500 rows no matter
+      // what `limit` you ask for. Requesting 1000 silently truncates the result
+      // set to 500, which is what caused older (and smaller) sales to vanish.
+      const HISTORY_PAGE_SIZE = 500;
+      const RPC_PAGE_SIZE = 1000;
+      const MAX_HISTORY_PAGES = 400;
+      const CROSS_CHECK_CONCURRENCY = 3;
+      const CROSS_CHECK_RETRIES = 4;
+      const EPSILON = 0.000001;
+
+      const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
       // Helper: Fetch JSON with automatic multi-node fallback for Hive-Engine RPC
       const fetchRpcWithFallback = async (bodyPayload) => {
@@ -78,8 +95,10 @@
         return [];
       };
 
-      // Helper: Fetch History Node with multi-node fallback
-      const fetchHistoryWithFallback = async (queryString) => {
+      // Helper: Fetch History Node with multi-node fallback + retry.
+      // The node rate-limits bursts and answers with a CORS/network failure rather
+      // than an HTTP error, so failures must be retried instead of swallowed.
+      const fetchHistoryWithFallback = async (queryString, attempt = 0) => {
         const nodes = [
           'https://history.hive-engine.com/accountHistory',
           'https://accounts.hive-engine.com/accountHistory'
@@ -87,7 +106,10 @@
         for (const baseUrl of nodes) {
           try {
             const res = await fetch(`${baseUrl}?${queryString}`);
-            if (!res.ok) continue;
+            if (!res.ok) {
+              console.warn(`History node ${baseUrl} returned ${res.status}, trying next...`);
+              continue;
+            }
             const json = await res.json();
             if (Array.isArray(json)) {
               return json;
@@ -96,7 +118,73 @@
             console.warn(`History node failed (${baseUrl}), trying next...`, e);
           }
         }
+        if (attempt < CROSS_CHECK_RETRIES - 1) {
+          await sleep(500 * (attempt + 1) * (attempt + 1));
+          return fetchHistoryWithFallback(queryString, attempt + 1);
+        }
+        console.error(`History request permanently failed: ${queryString}`);
         return null;
+      };
+
+      // Runs `worker` over `items` with a bounded number of concurrent requests.
+      // Firing 40+ history calls at once is what tripped the node's rate limiter.
+      const mapWithConcurrency = async (items, limit, worker) => {
+        const results = new Array(items.length);
+        let cursor = 0;
+        const runners = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
+          while (cursor < items.length) {
+            const index = cursor++;
+            try {
+              results[index] = await worker(items[index], index);
+            } catch (err) {
+              results[index] = { error: err };
+            }
+          }
+        });
+        await Promise.all(runners);
+        return results;
+      };
+
+      // Market ops (market_sell / market_buy) report the token amount as
+      // `quantityTokens`; transfers report it as `quantity`. Reading the wrong
+      // field silently yields 0 and drops the row.
+      const extractQty = (record) => {
+        const op = String(record.operation || '').toLowerCase();
+        const isMarket = op === 'market_sell' || op === 'market_buy';
+        const keys = isMarket ? ['quantityTokens', 'quantity'] : ['quantity', 'quantityTokens'];
+        for (const key of keys) {
+          const raw = record[key];
+          if (raw === undefined || raw === null || raw === '') continue;
+          const num = parseFloat(raw);
+          if (!isNaN(num)) return num;
+        }
+        return 0;
+      };
+
+      // Market ops carry no `price` field. The node reports the Hive leg as
+      // `quantityHive`, so the real price is quantityHive / quantityTokens.
+      // Falling back to a flat 1.0 HIVE mislabelled every 2.0 HIVE tranche.
+      const derivePrice = (record, qty) => {
+        if (record.price !== undefined && record.price !== null && record.price !== '') {
+          const p = parseFloat(record.price);
+          if (!isNaN(p) && p > 0) return p;
+        }
+        if (record.quantityHive !== undefined && record.quantityHive !== null && qty > 0) {
+          const hive = parseFloat(record.quantityHive);
+          if (!isNaN(hive) && hive > 0) {
+            const p = hive / qty;
+            if (p > 0) return p;
+          }
+        }
+        return TRANCHE_1_PRICE;
+      };
+
+      const txIdsOf = (record) => {
+        const ids = [];
+        if (record.transactionId) ids.push(record.transactionId);
+        if (record.sellTxId) ids.push(record.sellTxId);
+        if (record.buyTxId) ids.push(record.buyTxId);
+        return ids;
       };
 
       // 1. Fetch exact current balances (Liquid + Staked)
@@ -110,13 +198,13 @@
             jsonrpc: '2.0',
             id: 1,
             method: 'find',
-            params: { contract: 'tokens', table: 'balances', query: { symbol: SYMBOL }, limit: 1000, offset },
+            params: { contract: 'tokens', table: 'balances', query: { symbol: SYMBOL }, limit: RPC_PAGE_SIZE, offset },
           });
           allBalances = [...allBalances, ...records];
-          if (records.length < 1000) hasMore = false;
-          else offset += 1000;
+          if (records.length < RPC_PAGE_SIZE) hasMore = false;
+          else offset += RPC_PAGE_SIZE;
         }
-        
+
         return allBalances
           .filter(b => b.account !== SELLER_ACCOUNT && b.account !== 'null')
           .map(b => ({
@@ -144,41 +232,57 @@
               contract: 'market',
               table: 'tradesHistory',
               query: { symbol: SYMBOL, seller: SELLER_ACCOUNT },
-              limit: 1000,
+              limit: RPC_PAGE_SIZE,
               offset
             },
           });
           allTrades = [...allTrades, ...records];
-          if (records.length < 1000) hasMore = false;
-          else offset += 1000;
+          if (records.length < RPC_PAGE_SIZE) hasMore = false;
+          else offset += RPC_PAGE_SIZE;
         }
 
         return allTrades;
       };
 
-      // 3. Force deep filter on History Node (paginating newest-first)
-      const fetchDeepHistory = async () => {
-        let allRecords = [];
+      // 3. Fetch the seller's full history node history.
+      //    Paginate until an EMPTY page comes back, advancing the offset by the
+      //    number of rows actually received. Breaking on a short page is what
+      //    silently dropped the second half of the ledger.
+      const fetchAccountHistory = async (account) => {
+        if (historyCache.has(account)) return historyCache.get(account);
+
+        const records = [];
+        const seen = new Set();
         let offset = 0;
-        let hasMore = true;
+        let pages = 0;
+        let failed = false;
 
-        while (hasMore) {
-          const data = await fetchHistoryWithFallback(`account=${SELLER_ACCOUNT}&symbol=${SYMBOL}&limit=1000&offset=${offset}`);
-          if (!data || data.length === 0) break;
-          
-          allRecords = [...allRecords, ...data];
-          if (data.length < 1000) hasMore = false;
-          else offset += 1000;
-          
-          if (allRecords.length >= 30000) break; 
+        while (pages < MAX_HISTORY_PAGES) {
+          const data = await fetchHistoryWithFallback(
+            `account=${account}&symbol=${SYMBOL}&limit=${HISTORY_PAGE_SIZE}&offset=${offset}`
+          );
+          if (data === null) {
+            failed = true;
+            break;
+          }
+          if (data.length === 0) break;
+
+          let added = 0;
+          for (const rec of data) {
+            const id = rec._id || `${rec.timestamp}_${rec.operation}_${rec.transactionId}`;
+            if (seen.has(id)) continue;
+            seen.add(id);
+            records.push(rec);
+            added++;
+          }
+          pages++;
+          offset += data.length;
+          if (data.length < HISTORY_PAGE_SIZE && added === 0) break;
         }
-        return allRecords;
-      };
 
-      // 4. Fetch buyer-side history for accounts that have un-traced balance increases
-      const fetchBuyerHistoryFallback = async (buyerAccount) => {
-        const data = await fetchHistoryWithFallback(`account=${buyerAccount}&symbol=${SYMBOL}&limit=500&offset=0`);
-        return Array.isArray(data) ? data : [];
+        const result = { records, failed };
+        if (!failed) historyCache.set(account, result);
+        return result;
       };
 
       const processData = async () => {
@@ -187,15 +291,23 @@
         setLoadingMsg('Fetching Rich List, RPC Market Trades, and Deep History concurrently...');
 
         try {
-          const [richListRaw, recentTrades, deepHistory] = await Promise.all([
+          const [richListRaw, recentTrades, sellerHistory] = await Promise.all([
             fetchRichList(),
             fetchRecentTrades(),
-            fetchDeepHistory()
+            fetchAccountHistory(SELLER_ACCOUNT)
           ]);
+          const deepHistory = sellerHistory.records;
+          const sellerHistoryFailed = sellerHistory.failed;
 
           setLoadingMsg('Reconciling ledgers and mathematically verifying supply...');
 
+          const sellerLower = SELLER_ACCOUNT.toLowerCase();
+
           const richList = richListRaw.map(user => {
+            // A 50 ELIXIR "Test" transfer was made to bulliontools. It is not a
+            // sale, so it is excluded from the ledger and from the balance used
+            // for reconciliation. (Previously this rule also deleted two real
+            // 50 ELIXIR market sales to bulliontools.)
             if (user.account === 'bulliontools') {
               return { ...user, total: Math.max(0, user.total - 50) };
             }
@@ -216,7 +328,7 @@
             const price = parseFloat(trade.price || 0);
             const timestamp = Number(trade.timestamp || 0);
             const key = `RPC_${buyer}_${qty.toFixed(6)}_${timestamp}_${trade._id || idx}`;
-            
+
             ledgerMap.set(key, {
               id: key,
               date: new Date(timestamp * 1000).toLocaleString(),
@@ -228,7 +340,8 @@
               price: price,
               totalHive: qty * price,
               source: 'RPC Market',
-              memo: 'Order Book Fill'
+              memo: 'Order Book Fill',
+              txIds: txIdsOf(trade)
             });
           });
 
@@ -236,22 +349,27 @@
           deepHistory.forEach((record, idx) => {
             const op = String(record.operation || '').toLowerCase();
             const isTransferType = op.includes('transfer') || op.includes('issue');
-            const isMarketType = op === 'market_sell' || op.includes('sell') || op === 'market_closeorder';
-            
+            const isMarketType = op === 'market_sell';
+
             const accountUser = String(record.account || '').toLowerCase();
             const fromUser = String(record.from || record.sender || accountUser || '').toLowerCase();
             const toUser = String(record.to || record.receiver || record.buyer || '').toLowerCase();
-            const qty = parseFloat(record.quantity || record.amount || record.quantityTokens || 0);
+            const qty = extractQty(record);
             const timestamp = Number(record.timestamp || 0);
             const memo = record.memo || '';
-            const sellerLower = SELLER_ACCOUNT.toLowerCase();
-            
-            if ((fromUser === 'bulliontools' || toUser === 'bulliontools') && Math.abs(qty - 50) < 0.000001) {
-              return; 
+
+            // The "Test" transfer is a plain transfer, never a market sale.
+            if (
+              isTransferType &&
+              memo.trim().toLowerCase() === 'test' &&
+              Math.abs(qty - 50) < EPSILON &&
+              (fromUser === 'bulliontools' || toUser === 'bulliontools')
+            ) {
+              return;
             }
 
             const isOutbound = fromUser === sellerLower || accountUser === sellerLower;
-            
+
             if (isTransferType && isOutbound && toUser && toUser !== sellerLower && qty > 0) {
               const key = `DELEG_${toUser}_${qty.toFixed(6)}_${timestamp}_${idx}`;
               ledgerMap.set(key, {
@@ -265,20 +383,24 @@
                 price: 0,
                 totalHive: 0,
                 source: 'Blockchain Transfer',
-                memo: memo ? `Transfer: ${memo}` : 'Delegation Payment (No Memo)'
+                memo: memo ? `Transfer: ${memo}` : 'Delegation Payment (No Memo)',
+                txIds: txIdsOf(record)
               });
             }
-            
+
             if (isMarketType && isOutbound && qty > 0) {
-              const price = parseFloat(record.price || TRANCHE_1_PRICE);
-              
+              const price = derivePrice(record, qty);
+
+              // Duplicate check against the RPC copy of the same fill.
+              const recordTxIds = txIdsOf(record);
               let isDuplicate = false;
               for (let val of ledgerMap.values()) {
                 if (val.source !== 'RPC Market') continue;
                 const sameBuyer = !toUser || val.buyer === toUser;
-                const sameQty = Math.abs(val.quantity - qty) < 0.000001;
+                const sameQty = Math.abs(val.quantity - qty) < EPSILON;
                 const sameTime = Math.abs(val.timestamp - timestamp) <= 120;
-                if (sameBuyer && sameQty && sameTime) {
+                const sameTx = recordTxIds.length > 0 && val.txIds && recordTxIds.some(t => val.txIds.includes(t));
+                if ((sameTx || (sameBuyer && sameQty && sameTime))) {
                   isDuplicate = true;
                   break;
                 }
@@ -297,7 +419,8 @@
                   price: price,
                   totalHive: qty * price,
                   source: 'History Node',
-                  memo: 'Order Book Match'
+                  memo: 'Order Book Match',
+                  txIds: recordTxIds
                 });
               }
             }
@@ -312,82 +435,147 @@
             }
           });
 
-          // Identify holders with untraced balances and check their buyer history
-          // to resolve exact timestamps/prices when seller-side RPC/History lagged
-          const discrepantUsers = richList.filter(u => u.total > (tracedByAccount[u.account] || 0) + 0.000001);
-          
-          if (discrepantUsers.length > 0 && discrepantUsers.length <= 40) {
-            setLoadingMsg(`Cross-checking ${discrepantUsers.length} buyer account histories for unindexed sells...`);
-            await Promise.all(discrepantUsers.map(async (user) => {
-              const buyerRecords = await fetchBuyerHistoryFallback(user.account);
-              buyerRecords.forEach((rec, bIdx) => {
-                const bOp = String(rec.operation || '').toLowerCase();
-                if (bOp === 'market_buy' || bOp.includes('buy')) {
-                  const bQty = parseFloat(rec.quantity || rec.amount || rec.quantityTokens || 0);
-                  const bPrice = parseFloat(rec.price || TRANCHE_1_PRICE);
-                  const bTs = Number(rec.timestamp || 0);
-                  if (bQty <= 0) return;
+          // Cross-check every account that appears in the seller's history OR in
+          // the rich list, including accounts whose balance is now 0 (they sold
+          // or moved on, so a balance-based reconciliation can never recover
+          // them). Their own history still proves the sale happened.
+          const candidateAccounts = new Set();
+          deepHistory.forEach(record => {
+            if (String(record.operation || '').toLowerCase() !== 'market_sell') return;
+            const buyer = String(record.to || '').toLowerCase();
+            if (buyer) candidateAccounts.add(buyer);
+          });
+          richList.forEach(user => candidateAccounts.add(user.account));
 
-                  let matchedUnknown = null;
-                  let alreadyExists = false;
-                  for (let [k, val] of ledgerMap.entries()) {
-                    const sameQty = Math.abs(val.quantity - bQty) < 0.000001;
-                    const sameTime = Math.abs(val.timestamp - bTs) <= 120;
-                    if (sameQty && sameTime) {
-                      if (val.buyer === user.account) {
-                        alreadyExists = true;
-                        break;
-                      }
-                      if (val.buyer === 'UNKNOWN') {
-                        matchedUnknown = k;
-                      }
-                    }
-                  }
+          setLoadingMsg(`Cross-checking ${candidateAccounts.size} account histories for unindexed sells...`);
 
-                  if (!alreadyExists) {
-                    if (matchedUnknown) {
-                      const existing = ledgerMap.get(matchedUnknown);
-                      ledgerMap.set(matchedUnknown, {
-                        ...existing,
-                        buyer: user.account,
-                        price: bPrice || existing.price,
-                        totalHive: bQty * (bPrice || existing.price),
-                        memo: 'Order Book Match (Buyer Verified)'
-                      });
-                    } else {
-                      const key = `BUYER_${user.account}_${bQty.toFixed(6)}_${bTs}_${bIdx}`;
-                      ledgerMap.set(key, {
-                        id: key,
-                        date: new Date(bTs * 1000).toLocaleString(),
-                        timestamp: bTs,
-                        type: 'BUY (HIST)',
-                        buyer: user.account,
-                        seller: SELLER_ACCOUNT,
-                        quantity: bQty,
-                        price: bPrice,
-                        totalHive: bQty * bPrice,
-                        source: 'Buyer History Node',
-                        memo: 'Order Book Fill (Buyer Verified)'
-                      });
-                    }
-                    tracedByAccount[user.account] = (tracedByAccount[user.account] || 0) + bQty;
-                  }
+          const otherSellerInflow = {};
+          let crossCheckFailed = 0;
+          let recoveredByCrossCheck = 0;
+
+          const checkAccount = async (account) => {
+            const { records, failed } = await fetchAccountHistory(account);
+            if (failed) return { account, failed: true, buys: [], otherIn: 0 };
+
+            const buys = [];
+            let otherIn = 0;
+
+            (records || []).forEach(rec => {
+              const op = String(rec.operation || '').toLowerCase();
+              const qty = extractQty(rec);
+              if (qty <= 0) return;
+
+              if (op === 'market_buy') {
+                const from = String(rec.from || '').toLowerCase();
+                if (from === sellerLower) {
+                  buys.push({
+                    qty: qty,
+                    timestamp: Number(rec.timestamp || 0),
+                    price: derivePrice(rec, qty),
+                    txIds: txIdsOf(rec)
+                  });
+                } else {
+                  // Bought from somebody else - not a nectarbytes sale.
+                  otherIn += qty;
                 }
-              });
-            }));
+              } else if (op.includes('transfer')) {
+                const to = String(rec.to || '').toLowerCase();
+                const from = String(rec.from || '').toLowerCase();
+                if (to === account && from && from !== sellerLower) {
+                  otherIn += qty;
+                }
+              }
+            });
+
+            return { account, failed: false, buys, otherIn };
+          };
+
+          const accountList = Array.from(candidateAccounts);
+          const crossCheckResults = await mapWithConcurrency(
+            accountList,
+            CROSS_CHECK_CONCURRENCY,
+            checkAccount
+          );
+
+          // The history node throttles bursts, so a couple of parallel requests
+          // can still come back empty-handed. Retry those one at a time instead
+          // of silently dropping the account.
+          for (let i = 0; i < crossCheckResults.length; i++) {
+            const res = crossCheckResults[i];
+            if (res && !res.failed && !res.error) continue;
+            await sleep(750);
+            try {
+              crossCheckResults[i] = await checkAccount(res && res.account ? res.account : accountList[i]);
+            } catch (err) {
+              crossCheckResults[i] = { account: accountList[i], failed: true, buys: [], otherIn: 0 };
+            }
           }
 
+          crossCheckResults.forEach(result => {
+            if (!result || result.error || result.failed) {
+              crossCheckFailed++;
+              return;
+            }
+
+            if (result.otherIn > 0) {
+              otherSellerInflow[result.account] = (otherSellerInflow[result.account] || 0) + result.otherIn;
+            }
+
+            result.buys.forEach((buy, bIdx) => {
+              let alreadyExists = false;
+              for (const val of ledgerMap.values()) {
+                if (!val.type.startsWith('BUY')) continue;
+                const sameTx = buy.txIds.length > 0 && val.txIds && buy.txIds.some(t => val.txIds.includes(t));
+                const sameBuyer = val.buyer === result.account;
+                const sameQty = Math.abs(val.quantity - buy.qty) < EPSILON;
+                const sameTime = Math.abs(val.timestamp - buy.timestamp) <= 2;
+                if (sameTx || (sameBuyer && sameQty && sameTime)) {
+                  alreadyExists = true;
+                  break;
+                }
+              }
+
+              if (!alreadyExists) {
+                const key = `BUYER_${result.account}_${buy.qty.toFixed(6)}_${buy.timestamp}_${bIdx}`;
+                ledgerMap.set(key, {
+                  id: key,
+                  date: new Date(buy.timestamp * 1000).toLocaleString(),
+                  timestamp: buy.timestamp,
+                  type: 'BUY (HIST)',
+                  buyer: result.account,
+                  seller: SELLER_ACCOUNT,
+                  quantity: buy.qty,
+                  price: buy.price,
+                  totalHive: buy.qty * buy.price,
+                  source: 'Buyer History Node',
+                  memo: 'Order Book Fill (Buyer Verified)',
+                  txIds: buy.txIds
+                });
+                recoveredByCrossCheck++;
+                tracedByAccount[result.account] = (tracedByAccount[result.account] || 0) + buy.qty;
+              }
+            });
+          });
+
+          // Reconcile what each holder still owns against what we can prove
+          // they received from nectarbytes. Tokens that arrived from another
+          // seller are subtracted first so they are not miscounted as sales.
           let totalReconstructed = 0;
-          
+          let unverifiedAccounts = 0;
+
           richList.forEach(user => {
             const trueBalance = user.total;
             const tracedBalance = tracedByAccount[user.account] || 0;
-            
-            if (trueBalance > tracedBalance + 0.000001) { 
-              const missingQty = trueBalance - tracedBalance;
-              totalReconstructed += missingQty;
-              
-              const key = `RECON_${user.account}_${missingQty.toFixed(6)}`;
+            const otherIn = otherSellerInflow[user.account] || 0;
+            const verified = crossCheckResults.some(r => r && !r.error && !r.failed && r.account === user.account);
+            if (!verified) unverifiedAccounts++;
+
+            const gap = trueBalance - tracedBalance - otherIn;
+
+            if (gap > EPSILON) {
+              totalReconstructed += gap;
+
+              const key = `RECON_${user.account}_${gap.toFixed(6)}`;
               ledgerMap.set(key, {
                 id: key,
                 date: 'Historical (Pruned by API)',
@@ -395,11 +583,14 @@
                 type: 'BUY (RECONSTRUCTED)',
                 buyer: user.account,
                 seller: SELLER_ACCOUNT,
-                quantity: missingQty,
+                quantity: gap,
                 price: TRANCHE_1_PRICE,
-                totalHive: missingQty * TRANCHE_1_PRICE,
+                totalHive: gap * TRANCHE_1_PRICE,
                 source: 'Rich List Reconciliation',
-                memo: 'Pruned by Node (Assumed Sale)'
+                memo: verified
+                  ? 'Pruned by Node (Assumed Sale)'
+                  : 'Pruned by Node (Assumed Sale, Account Unverified)',
+                txIds: []
               });
             }
           });
@@ -411,11 +602,15 @@
 
           finalLedger.forEach(row => {
             if (row.price > 0) {
-              const p = row.price.toFixed(8);
+              // Hive Engine reports the Hive leg including the taker fee, so the
+              // effective price of a 2.0 HIVE fill lands on 2.00000002 and so on.
+              // Group the tranche chart by the rounded price, otherwise the fee
+              // jitter shatters every tier into a dozen near-identical cards.
+              const p = row.price.toFixed(4);
               if (!priceMap[p]) priceMap[p] = 0;
               priceMap[p] += row.quantity;
             }
-            
+
             if (row.type === 'DELEGATION PAYMENT') {
               totalRewards += row.quantity;
             } else if (row.source !== 'Rich List Reconciliation') {
@@ -437,6 +632,16 @@
             totalReconstructed,
             totalRewards,
             totalCalculatedSold: totalTracedMarket + totalReconstructed
+          });
+
+          setQuality({
+            historyRecords: deepHistory.length,
+            sellerHistoryFailed,
+            accountsChecked: candidateAccounts.size,
+            crossCheckFailed,
+            recoveredByCrossCheck,
+            unverifiedAccounts,
+            otherSellerInflowTotal: Object.values(otherSellerInflow).reduce((a, b) => a + b, 0)
           });
 
         } catch (err) {
@@ -477,16 +682,16 @@
       return (
         <div className="min-h-screen bg-slate-900 text-slate-200 p-6 font-sans">
           <div className="max-w-6xl mx-auto space-y-6">
-            
+
             <header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
               <div>
                 <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-                  <CheckCircle2 className="text-emerald-500" /> 
+                  <CheckCircle2 className="text-emerald-500" />
                   ELIXIR Definitive Ledger
                 </h1>
                 <p className="text-slate-400 text-sm mt-1">Cross-referencing APIs with Staked/Liquid Rich List to reconstruct pruned data</p>
               </div>
-              
+
               <button
                 onClick={processData}
                 disabled={loading}
@@ -511,38 +716,53 @@
               </div>
             ) : (
               <>
+                {quality && (
+                  <div className="bg-slate-800/60 border border-slate-700 rounded-lg px-4 py-3 text-xs text-slate-400 flex flex-wrap gap-x-6 gap-y-1">
+                    <span><span className="text-slate-200 font-semibold">{quality.historyRecords}</span> seller history records indexed</span>
+                    <span><span className="text-slate-200 font-semibold">{quality.accountsChecked}</span> account histories cross-checked</span>
+                    <span><span className="text-slate-200 font-semibold">{quality.recoveredByCrossCheck}</span> sales recovered via buyer history</span>
+                    <span><span className="text-slate-200 font-semibold">{quality.otherSellerInflowTotal.toFixed(6)}</span> ELIXIR excluded (bought from other sellers)</span>
+                    {quality.crossCheckFailed > 0 && (
+                      <span className="text-amber-400"><span className="font-semibold">{quality.crossCheckFailed}</span> account histories failed to load</span>
+                    )}
+                    {quality.sellerHistoryFailed && (
+                      <span className="text-red-400"><span className="font-semibold">Seller history failed to load</span> - ledger may be incomplete</span>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <StatCard 
-                    title="Public Supply" 
+                  <StatCard
+                    title="Public Supply"
                     value={stats.totalPublicHeld}
                     subtext="Liquid + Staked + Pending"
                     icon={Database}
                     colorClass="text-indigo-400"
                   />
-                  <StatCard 
-                    title="Delegation Payments" 
+                  <StatCard
+                    title="Delegation Payments"
                     value={stats.totalRewards}
                     subtext="Direct transfers / airdrops"
                     icon={Gift}
                     colorClass="text-purple-400"
                   />
-                  <StatCard 
-                    title="Traced Market Sells" 
+                  <StatCard
+                    title="Traced Market Sells"
                     value={stats.totalTracedMarket}
                     subtext="Found in RPC/History"
                     icon={History}
                     colorClass="text-cyan-400"
                   />
-                  <StatCard 
-                    title="Pruned Sales Recovered" 
+                  <StatCard
+                    title="Pruned Sales Recovered"
                     value={stats.totalReconstructed}
                     subtext="Reconstructed from balances"
                     icon={AlertCircle}
                     colorClass="text-amber-400"
                     highlight={stats.totalReconstructed > 0}
                   />
-                  <StatCard 
-                    title="Total Confirmed Sold" 
+                  <StatCard
+                    title="Total Confirmed Sold"
                     value={stats.totalCalculatedSold}
                     subtext="Guaranteed market volume"
                     icon={Coins}
@@ -591,7 +811,7 @@
                         {data.history.map((row, index) => {
                           const isReconstructed = row.source === 'Rich List Reconciliation';
                           const isReward = row.type === 'DELEGATION PAYMENT';
-                          
+
                           return (
                             <tr key={`${row.id}-${index}`} className={`hover:bg-slate-700/35 transition-colors ${isReconstructed ? 'bg-amber-900/10' : ''}`}>
                               <td className={`p-4 ${isReconstructed ? 'text-amber-500/70 italic' : 'text-slate-400'}`}>{row.date}</td>
