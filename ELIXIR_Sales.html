@@ -253,7 +253,7 @@ fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke
         <path d="m21 21-4.3-4.3"></path>
       </svg>
       <p id="loadingMsg" class="loading-msg">Booting ledger engine...</p>
-      <p id="loadingSub" class="loading-sub">Connecting to Hive-Engine nodes (WebView compatible mode)</p>
+      <p id="loadingSub" class="loading-sub">Tap "Audit Supply" if script auto-boot was paused by viewer</p>
       <div id="diagLog" class="diag-box"></div>
     </div>
 
@@ -307,6 +307,14 @@ missing historical purchases and reconstructs them into the ledger, ensuring you
   </div>
 
   <script>
+    (function() {
+      var diagBox = document.getElementById('diagLog');
+      if (diagBox) {
+        diagBox.innerHTML = '<div class="diag-line diag-ok">[' + new 
+Date().toLocaleTimeString() + '] JavaScript engine active.</div>';
+      }
+    })();
+
     function logDiag(msg, type) {
       var box = document.getElementById('diagLog');
       if (!box) return;
@@ -324,7 +332,8 @@ missing historical purchases and reconstructs them into the ledger, ensuring you
         errMsg.textContent = 'Script Error (line ' + lineno + '): ' + message;
         errBox.classList.remove('hidden');
       }
-      logDiag('ERROR: ' + message, 'err');
+      logDiag('ERROR: ' + message, 
+'err');
       return false;
     };
 
@@ -361,16 +370,13 @@ missing historical purchases and reconstructs them into the ledger, ensuring you
       });
     }
 
-    // XHR works reliably across file://, content://, and Mobile WebViews (like Hive Keychain)
-    // where fetch() often throws "URL scheme must be http or https" or strict Origin=null errors.
     function xhrRequest(method, url, bodyStr) {
       return new Promise(function(resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.open(method, url, true);
         xhr.timeout = XHR_TIMEOUT_MS;
         if (method === 'POST') {
-          xhr.setRequestHeader('Content-Type', 'application/
-json');
+          xhr.setRequestHeader('Content-Type', 'application/json');
         }
         xhr.onload = function() {
           if (xhr.status >= 200 && xhr.status < 300) {
@@ -384,7 +390,7 @@ json');
           }
         };
         xhr.onerror = function() {
-          reject(new Error('Network/CORS blocked on ' + url + ' (Origin: ' + window.location.origin + ')'));
+          reject(new Error('Network/CORS blocked on ' + url));
         };
         xhr.ontimeout = function() {
           reject(new Error('Timeout after ' + (XHR_TIMEOUT_MS / 1000) + 's on ' + url));
@@ -393,9 +399,8 @@ json');
       });
     }
 
-    // Fallback via CORS proxy if Keychain's local file:// / content:// WebView blocks direct XHR
-    function xhrWithCorsProxyFallback(method, url, bodyStr) 
-{
+    function xhrWithCorsProxyF
+allback(method, url, bodyStr) {
       return xhrRequest(method, url, bodyStr).catch(function(directErr) {
         if (method === 'GET') {
           var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
@@ -407,8 +412,8 @@ json');
       });
     }
 
-    function fetchRpcWithFallback(bodyPayload) 
-{
+    function fetchRpcWit
+hFallback(bodyPayload) {
       var nodes = [
         'https://api.hive-engine.com/rpc/contracts',
         'https://herpc.dtools.dev/contracts',
@@ -432,8 +437,7 @@ json');
           return tryNext();
         }).catch(function(err) {
           lastErr = err.message || String(err);
-          logDiag('RPC fail: ' + lastErr, 
-'err');
+          logDiag('RPC fail: ' + lastErr, 'err');
           return tryNext();
         });
       }
@@ -458,8 +462,7 @@ json');
           return Promise.resolve(null);
         }
         var fullUrl = nodes[idx++] + '?' + queryString;
-        return 
-xhrWithCorsProxyFallback('GET', fullUrl, null).then(function(json) {
+        return xhrWithCorsProxyFallback('GET', fullUrl, null).then(function(json) {
           if (Array.isArray(json)) return json;
           return tryNext();
         }).catch(function(err) {
@@ -471,8 +474,7 @@ xhrWithCorsProxyFallback('GET', fullUrl, null).then(function(json) {
     }
 
     function mapWithConcurrency(items, limit, worker) {
-      var results = new 
-Array(items.length);
+      var results = new Array(items.length);
       var cursor = 0;
       var count = Math.max(1, Math.min(limit, items.length));
       var runners = [];
@@ -498,8 +500,8 @@ Array(items.length);
     function extractQty(record) {
       var op = String(record.operation || '').toLowerCase();
       var isMarket = op === 'market_sell' || op === 'market_buy';
-      var keys = isMarket ? ['quantityTokens', 'quantity'] : 
-['quantity', 'quantityTokens'];
+      var keys = isMarket ? 
+['quantityTokens', 'quantity'] : ['quantity', 'quantityTokens'];
       for (var i = 0; i < keys.length; i++) {
         var raw = record[keys[i]];
         if (raw === undefined || raw === null || raw === '') continue;
@@ -511,8 +513,7 @@ Array(items.length);
 
     function derivePrice(record, qty) {
       if (record.price !== undefined && record.price !== null && record.price !== '') {
-        var p = 
-parseFloat(record.price);
+        var p = parseFloat(record.price);
         if (!isNaN(p) && p > 0) return p;
       }
       if (record.quantityHive !== undefined && record.quantityHive !== null && qty > 0) {
@@ -561,11 +562,12 @@ parseFloat(record.price);
 
       return nextPage().then(function() {
         if (!anyOk && lastErr) {
-          throw new Error('Hive Keychain WebView blocked direct RPC access (' + lastErr + '). Host this file on GitHub Pages / Netlify or open it in Chrome/Brave.');
+          throw new Error('Blocked from reaching Hive-Engine RPC (' + lastErr + ').');
         }
         logDiag('Loaded ' + allBalances.length + ' rich list entries.', 'ok');
         return allBalances
-          .filter(function(b) { return b.account !== SELLER_ACCOUNT && b.account !== 'null'; })
+          .filter(function(b) { return 
+b.account !== SELLER_ACCOUNT && b.account !== 'null'; })
           .map(function(b) {
             var liquid = parseFloat(b.balance || 0);
             var staked = parseFloat(b.stake || 0);
@@ -608,7 +610,8 @@ parseFloat(record.price);
         });
       }
 
-      return nextPage().then(function() {
+      return 
+nextPage().then(function() {
         logDiag('Loaded ' + allTrades.length + ' RPC market trades.', 'ok');
         return allTrades;
       });
@@ -643,8 +646,7 @@ parseFloat(record.price);
           }
           pages++;
           offset += data.length;
-          if (data.length < HISTORY_PAGE_SIZE && added === 
-0) return;
+          if (data.length < HISTORY_PAGE_SIZE && added === 0) return;
           return nextPage();
         });
       }
@@ -657,8 +659,7 @@ parseFloat(record.price);
     }
 
     function setLoadingState(isLoading, msg) {
-      var btn = document.getElement
-ById('auditBtn');
+      var btn = document.getElementById('auditBtn');
       var icon = document.getElementById('auditIcon');
       var btnText = document.getElementById('auditBtnText');
       var loadingBox = document.getElementById('loadingBox');
@@ -666,9 +667,9 @@ ById('auditBtn');
       var loadingMsg = document.getElementById('loadingMsg');
 
       btn.disabled = isLoading;
-      if (isLoading) 
-{
-        icon.classList.add('spin');
+      if (isLoading) {
+        
+icon.classList.add('spin');
         btnText.textContent = 'Reconciling...';
         loadingBox.classList.remove('hidden');
         mainContent.classList.add('hidden');
@@ -677,17 +678,17 @@ ById('auditBtn');
         icon.classList.remove('spin');
         btnText.textContent = 'Audit Supply';
         loadingBox.classList.add('hidden');
-      
+      }
+    
 }
-    }
 
     function renderUI(finalLedger, pricePoints, stats, quality) {
       var qualityBar = document.getElementById('qualityBar');
       var qHtml =
         '<span><strong>' + quality.historyRecords + '</strong> seller history records indexed</span>' +
         '<span><strong>' + quality.accountsChecked + '</strong> account histories cross-checked</span>' +
-        '<span><strong>' + quality.recoveredByCrossCheck + 
-'</strong> sales recovered via buyer history</span>' +
+        '<span><strong>' + quality.recoveredByCrossCheck + '</strong> sales recovered via 
+buyer history</span>' +
         '<span><strong>' + quality.otherSellerInflowTotal.toFixed(6) + '</strong> ELIXIR excluded (bought from other sellers)</span>';
       if (quality.crossCheckFailed > 0) {
         qHtml += '<span class="text-amber"><strong>' + quality.crossCheckFailed + '</strong> account histories failed to load</span>';
@@ -773,15 +774,16 @@ pricePoints.map(function(pt) {
         '</div>';
       }).join('');
 
-      document.getElementById('led
-gerHeading').textContent = 'Unified Sales Ledger (' + finalLedger.length + ' operations)';
+      
+document.getElementById('ledgerHeading').textContent = 'Unified Sales Ledger (' + finalLedger.length + ' operations)';
 
       document.getElementById('ledgerBody').innerHTML = finalLedger.map(function(row) {
         var isRecon = row.source === 'Rich List Reconciliation';
         var isReward = row.type === 'DELEGATION PAYMENT';
         var dateClass = isRecon ? 'text-amber-muted' : 'text-slate-400';
         var typeClass = isRecon ? 'text-amber' : (isReward ? 'text-purple' : 'text-emerald');
-        var priceText = row.price === 0 ? 'OTC' : row.price.toFixed(8);
+        var priceText = row.price === 
+0 ? 'OTC' : row.price.toFixed(8);
         var totalText = row.price === 0 ? '-' : row.totalHive.toFixed(8);
 
         return '<tr class="' + (isRecon ? 'reconstructed' : '') + '">' +
@@ -789,8 +791,8 @@ gerHeading').textContent = 'Unified Sales Ledger (' + finalLedger.length + ' ope
           '<td class="font-bold ' + typeClass + '">' + escapeHtml(row.type) + '</td>' +
           '<td class="text-slate-200">@' + escapeHtml(row.buyer) + '</td>' +
           '<td class="text-slate-400 truncate" title="' + escapeHtml(row.memo) + '">' + escapeHtml(row.memo || 'None') + '</td>' +
-          '<td class="text-right 
-text-emerald mono font-medium">' + formatNum(row.quantity, 6, 6) + '</td>' +
+          '<td class="text-right text-emerald mono font-medium">' 
++ formatNum(row.quantity, 6, 6) + '</td>' +
           '<td class="text-right text-slate-300 mono">' + priceText + '</td>' +
           '<td class="text-right text-cyan mono font-medium">' + totalText + '</td>' +
         '</tr>';
@@ -805,10 +807,8 @@ text-emerald mono font-medium">' + formatNum(row.quantity, 6, 6) + '</td>' +
 
     function processData() {
       var errorBox = document.getElementById('errorBox');
-      var diagLog = document.getElementById('diagLog');
       errorBox.classList.add('hidden');
-      diagLog.innerHTML = '';
-      logDiag('Environment protocol: ' + window.location.protocol);
+      logDiag('Starting audit on protocol: ' + window.location.protocol);
       setLoadingState(true, 'Fetching Rich List, RPC Market Trades, and Deep History...');
 
       Promise.all([
@@ -823,7 +823,8 @@ text-emerald mono font-medium">' + formatNum(row.quantity, 6, 6) + '</td>' +
         var sellerHistoryFailed = sellerHistory.failed;
 
         logDiag('Seller history loaded: ' + deepHistory.length + ' records.', sellerHistoryFailed ? 'err' : 'ok');
-        document.getElementById('loadingMsg').textContent = 'Reconciling ledgers and verifying supply...';
+        document.getElementById('loadingMsg').textContent = 'Reconciling ledgers and verifying 
+supply...';
 
         var sellerLower = SELLER_ACCOUNT.toLowerCase();
         var richList = richListRaw.map(function(user) {
@@ -866,7 +867,8 @@ text-emerald mono font-medium">' + formatNum(row.quantity, 6, 6) + '</td>' +
           var isMarketType = op === 'market_sell';
 
           var accountUser = String(record.account || '').toLowerCase();
-          var fromUser = String(record.from || record.sender || accountUser || '').toLowerCase();
+          var fromUser = String(record.from || record.sender || accountUser || 
+'').toLowerCase();
           var toUser = String(record.to || record.receiver || record.buyer || '').toLowerCase();
           var qty = extractQty(record);
           var timestamp = Number(record.timestamp || 0);
@@ -875,8 +877,7 @@ text-emerald mono font-medium">' + formatNum(row.quantity, 6, 6) + '</td>' +
           if (
             isTransferType &&
             memo.trim().toLowerCase() === 'test' &&
-            Math.abs(qty - 50) < EPSILON 
-&&
+            Math.abs(qty - 50) < EPSILON &&
             (fromUser === 'bulliontools' || toUser === 'bulliontools')
           ) {
             return;
@@ -902,7 +903,8 @@ text-emerald mono font-medium">' + formatNum(row.quantity, 6, 6) + '</td>' +
             };
           }
 
-          if (isMarketType && isOutbound && qty > 0) {
+          if (isMarketType && 
+isOutbound && qty > 0) {
             var price = derivePrice(record, qty);
             var recordTxIds = txIdsOf(record);
             var isDuplicate = false;
@@ -910,9 +912,9 @@ text-emerald mono font-medium">' + formatNum(row.quantity, 6, 6) + '</td>' +
             for (var k = 0; k < mapKeys.length; k++) {
               var val = ledgerMap[mapKeys[k]];
               if (val.source !== 'RPC Market') continue;
-              var sameBuyer = !toUser || 
-val.buyer === toUser;
-              var sameQty = Math.abs(val.quantity - qty) < EPSILON;
+              var sameBuyer = !toUser || val.buyer === toUser;
+              var sameQty = Math.abs(val.quantity - qty) < 
+EPSILON;
               var sameTime = Math.abs(val.timestamp - timestamp) <= 120;
               var sameTx = recordTxIds.length > 0 && val.txIds && recordTxIds.some(function(t) { return val.txIds.indexOf(t) !== -1; });
               if (sameTx || (sameBuyer && sameQty && sameTime)) {
@@ -922,7 +924,8 @@ val.buyer === toUser;
             }
 
             if (!isDuplicate) {
-              var key2 = 'HIST_' + (toUser || 'unknown') + '_' + qty.toFixed(6) + '_' + timestamp + '_' + idx;
+              var key2 = 'HIST_' + (toUser 
+|| 'unknown') + '_' + qty.toFixed(6) + '_' + timestamp + '_' + idx;
               ledgerMap[key2] = {
                 id: key2,
                 date: new Date(timestamp * 1000).toLocaleString(),
@@ -945,8 +948,7 @@ val.buyer === toUser;
         Object.keys(ledgerMap).forEach(function(k) {
           var trade = ledgerMap[k];
           if (trade.buyer && trade.buyer !== 'UNKNOWN') {
-            tracedByAccount[trade.buyer] = (tracedByAccount[trade.buyer] || 
-0) + trade.quantity;
+            tracedByAccount[trade.buyer] = (tracedByAccount[trade.buyer] || 0) + trade.quantity;
           }
         });
 
@@ -956,10 +958,10 @@ val.buyer === toUser;
           var buyer = String(record.to || '').toLowerCase();
           if (buyer) candidateSet[buyer] = true;
         });
-        richList.forEach(function(user) { candidateSet[user.account] = 
-true; });
+        richList.forEach(function(user) { candidateSet[user.account] = true; });
 
-        var accountList = Object.keys(candidateSet);
+        var accountList = 
+Object.keys(candidateSet);
         document.getElementById('loadingMsg').textContent = 'Cross-checking ' + accountList.length + ' account histories...';
         logDiag('Cross-checking ' + accountList.length + ' buyer/holder accounts...');
 
@@ -989,8 +991,7 @@ true; });
                 }
               } else if (op.indexOf('transfer') !== -1) {
                 var to = String(rec.to || '').toLowerCase();
-                var from2 = String(rec.from || 
-'').toLowerCase();
+                var from2 = String(rec.from || '').toLowerCase();
                 if (to === account && from2 && from2 !== sellerLower) {
                   otherIn += qty;
                 }
@@ -1001,16 +1002,15 @@ true; });
           });
         }
 
-        return mapWithConcurrency(accountList, CROSS_CHECK_CONCURRENCY, checkAccount).then(fun
-ction(crossCheckResults) {
-          var retryChain = Promise.resolve();
+        return mapWithConcurrency(accountList, CROSS_CHECK_CONCURRENCY, checkAccount).then(function(crossCheckResults) {
+          var retryChain = 
+Promise.resolve();
           crossCheckResults.forEach(function(res, i) {
             if (res && !res.failed && !res.error) return;
             retryChain = retryChain.then(function() {
               return sleep(750).then(function() {
                 var acct = (res && res.account) ? res.account : accountList[i];
-                return checkAccount(acct).then(function(retryRes) 
-{
+                return checkAccount(acct).then(function(retryRes) {
                   crossCheckResults[i] = retryRes;
                 }).catch(function() {
                   crossCheckResults[i] = { account: acct, failed: true, buys: [], otherIn: 0 };
@@ -1024,7 +1024,8 @@ ction(crossCheckResults) {
             var crossCheckFailed = 0;
             var recoveredByCrossCheck = 0;
 
-            crossCheckResults.forEach(function(result) {
+            crossCheckResults.forEach(function(result) 
+{
               if (!result || result.error || result.failed) {
                 crossCheckFailed++;
                 return;
@@ -1033,18 +1034,18 @@ ction(crossCheckResults) {
                 otherSellerInflow[result.account] = (otherSellerInflow[result.account] || 0) + result.otherIn;
               }
 
-              result.buys.forEach(function(buy, 
-bIdx) {
+              result.buys.forEach(function(buy, bIdx) {
                 var alreadyExists = false;
-                var mapKeys = Object.keys(ledgerMap);
+                var mapKeys = 
+Object.keys(ledgerMap);
                 for (var k = 0; k < mapKeys.length; k++) {
                   var val = ledgerMap[mapKeys[k]];
                   if (val.type.indexOf('BUY') !== 0) continue;
                   var sameTx = buy.txIds.length > 0 && val.txIds && buy.txIds.some(function(t) { return val.txIds.indexOf(t) !== -1; });
                   var sameBuyer = val.buyer === result.account;
-                  var sameQty = 
-Math.abs(val.quantity - buy.qty) < EPSILON;
-                  var sameTime = Math.abs(val.timestamp - buy.timestamp) <= 2;
+                  var sameQty = Math.abs(val.quantity - buy.qty) < EPSILON;
+                  var sameTime = 
+Math.abs(val.timestamp - buy.timestamp) <= 2;
                   if (sameTx || (sameBuyer && sameQty && sameTime)) {
                     alreadyExists = true;
                     break;
@@ -1055,7 +1056,8 @@ Math.abs(val.quantity - buy.qty) < EPSILON;
                   var key = 'BUYER_' + result.account + '_' + buy.qty.toFixed(6) + '_' + buy.timestamp + '_' + bIdx;
                   ledgerMap[key] = {
                     id: key,
-                    date: new Date(buy.timestamp * 1000).toLocaleString(),
+                    date: new Date(buy.timestamp * 
+1000).toLocaleString(),
                     timestamp: buy.timestamp,
                     type: 'BUY (HIST)',
                     buyer: result.account,
@@ -1067,7 +1069,8 @@ Math.abs(val.quantity - buy.qty) < EPSILON;
                     memo: 'Order Book Fill (Buyer Verified)',
                     txIds: buy.txIds
                   };
-                  recoveredByCrossCheck++;
+                  recoveredByCrossCheck+
++;
                   tracedByAccount[result.account] = (tracedByAccount[result.account] || 0) + buy.qty;
                 }
               });
@@ -1076,9 +1079,9 @@ Math.abs(val.quantity - buy.qty) < EPSILON;
             var totalReconstructed = 0;
             richList.forEach(function(user) {
               var trueBalance = user.total;
-              var tracedBalance = 
-tracedByAccount[user.account] || 0;
-              var otherIn = otherSellerInflow[user.account] || 0;
+              var tracedBalance = tracedByAccount[user.account] || 0;
+              var otherIn = 
+otherSellerInflow[user.account] || 0;
               var verified = crossCheckResults.some(function(r) { return r && !r.error && !r.failed && r.account === user.account; });
               var gap = trueBalance - tracedBalance - otherIn;
 
@@ -1122,7 +1125,8 @@ tracedByAccount[user.account] || 0;
             finalLedger.sort(function(a, b) { return b.timestamp - a.timestamp; });
 
             var pricePoints = Object.keys(priceMap)
-              .map(function(price) { return { price: price, amount: priceMap[price] }; })
+              .map(function(price) 
+{ return { price: price, amount: priceMap[price] }; })
               .sort(function(a, b) { return parseFloat(a.price) - parseFloat(b.price); });
 
             var stats = {
@@ -1139,8 +1143,7 @@ tracedByAccount[user.account] || 0;
               accountsChecked: accountList.length,
               crossCheckFailed: crossCheckFailed,
               recoveredByCrossCheck: recoveredByCrossCheck,
-              otherSellerInflowTotal: Object.keys(otherSellerInflow).red
-uce(function(acc, k) { return acc + otherSellerInflow[k]; }, 0)
+              otherSellerInflowTotal: Object.keys(otherSellerInflow).reduce(function(acc, k) { return acc + otherSellerInflow[k]; }, 0)
             };
 
             logDiag('Reconciliation complete. Rendering ' + finalLedger.length + ' ledger entries.', 'ok');
@@ -1150,12 +1153,11 @@ uce(function(acc, k) { return acc + otherSellerInflow[k]; }, 0)
         });
       }).catch(function(err) {
         var msg = err && err.message ? err.message : 'Failed to aggregate data.';
-        document.getElementB
-yId('errorMsg').innerHTML =
-          '<strong>Hive Keychain WebView Restriction:</strong> ' + escapeHtml(msg) +
-          '<br><br><strong>Why this happens:</strong> Hive Keychain opens local HTML files using a restricted <code>file://</code> or <code>content://</code> origin, which causes its built-in WebView to block external POST API calls to Hive-Engine.' +
-          '<br><strong>How to run it:</strong> Open this file in your phone/desktop <strong>Chrome, Safari, or Brave</strong> browser, or host it on a free HTTPS URL (like 
-GitHub Pages or Netlify) and open that URL inside Hive Keychain.';
+        document.getElementById('errorMsg').innerHTML =
+          '<strong>Viewer Blocked 
+Network Request:</strong> ' + escapeHtml(msg) +
+          '<br><br><strong>Why this happens:</strong> Mobile file/attachment viewers disable JavaScript network requests for local HTML files.' +
+          '<br><strong>How to fix:</strong> Save the file to your device's Downloads folder, then open it directly in <strong>Chrome, Safari, or Brave</strong>, or host it on a free HTTPS link (like GitHub Pages or Netlify Drop) to open inside Hive Keychain.';
         errorBox.classList.remove('hidden');
         setLoadingState(false);
       });
@@ -1163,11 +1165,9 @@ GitHub Pages or Netlify) and open that URL inside Hive Keychain.';
 
     document.getElementById('auditBtn').addEventListener('click', processData);
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', processData);
-    } else {
+    setTimeout(function() {
       processData();
-    }
+    }, 100);
   </script>
 </body>
 </html>
